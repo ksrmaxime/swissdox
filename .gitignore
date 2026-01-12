@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Python / venv / secrets / vscode
+.venv/
+.env
+__pycache__/
+*.pyc
+.vscode/launch.json
+.vscode/tasks.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data & outputs (do not version)
+data/
+outputs/
+
+# Optional: large artifacts
+*.parquet
+*.csv
+*.png
+*.jpg
+*.pdf
+
+# Temp
+tmp/
+cache/
