@@ -1,103 +1,120 @@
 Swissdox – Media Analysis Pipelines
-
-This repository contains the data collection, processing, and analysis pipelines used in a research project on media discourse about public administration in Switzerland.
-The project relies on articles retrieved from the Swissdox media database and applies two alternative NLP pipelines, complemented by a systematic model comparison and evaluation framework.
-
-Project overview
-The repository implements three main components.
-Data collection
-Retrieval and cleaning of Swiss media articles via the Swissdox API.
-
-Analysis pipelines
-
-Embedded + RoBERTa pipeline: classical NLP approach combining multilingual embeddings for topic classification and XLM-RoBERTa for sentence-level sentiment analysis.
-
-LLM (Apertus) pipeline: article-level classification using a locally hosted OpenAI-compatible LLM server.
-
-Evaluation and comparison
-
-Alignment and comparison of outputs from the LLM pipeline, the embedded + RoBERTa pipeline, and an external GPT-based annotation pipeline.
-
+Overview
+This repository contains the data collection, processing, analysis, and evaluation pipelines developed for a research project on media discourse about public administration in Switzerland.
+The project relies on articles retrieved from the Swissdox media database and implements multiple NLP-based annotation strategies, combined with a systematic model comparison and evaluation framework.
+The repository is designed to support reproducible research, large-scale text analysis, and direct comparison between classical NLP approaches and LLM-based pipelines.
+Scope of the project
+The pipeline covers the full workflow from raw media data to publication-ready figures:
+Collection and cleaning of Swiss media articles via the Swissdox API
+Article- and sentence-level annotation using multiple NLP techniques
+Systematic comparison between annotation sources
+Consistent time-series and compositional visualisations
+Three annotation strategies are implemented and aligned:
+Embedded + RoBERTa pipeline (classical NLP)
+LLM pipeline (Apertus) using a locally hosted OpenAI-compatible server
+External GPT-based annotation pipeline (input only, not tracked)
 Repository structure
-
-SWISSDOX_REPO
-├── src
-│ └── swissdox
-│ ├── api.py
-│ ├── embeddings.py
-│ ├── sentences.py
-│ ├── sentiment.py
-│ ├── llm_client.py
-│ ├── pipelines
-│ │ ├── emb_roberta.py
-│ │ └── llm_apertus.py
-│ └── evaluation
-│ ├── compare.py
-│ └── plots.py
-├── scripts
-│ ├── download_articles.py
-│ ├── run_emb_roberta.py
-│ ├── run_llm_apertus.py
-│ ├── run_llm_apertus_overnight.py
-│ ├── run_comparison.py
-│ └── run_comparison_plots.py
-├── data
-│ ├── raw
-│ ├── processed
-│ └── external
-├── notebooks
+SWISSDOX_REPO/
+├── src/
+│   └── swissdox/
+│       ├── api.py
+│       ├── embeddings.py
+│       ├── sentences.py
+│       ├── sentiment.py
+│       ├── llm_client.py
+│       ├── pipelines/
+│       │   ├── emb_roberta.py
+│       │   └── llm_apertus.py
+│       └── evaluation/
+│           ├── compare.py
+│           └── plots.py
+├── scripts/
+│   ├── download_articles.py
+│   ├── run_emb_roberta.py
+│   ├── run_llm_apertus.py
+│   ├── run_llm_apertus_overnight.py
+│   ├── run_comparison.py
+│   └── run_comparison_plots.py
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   └── external/
+├── notebooks/        # exploratory only
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
 └── README.md
-
 Environment setup
-Create and activate a virtual environment using Python 3.12, then install dependencies from requirements.txt and install the project in editable mode.
-Create a .env file at the repository root containing the Swissdox API credentials and optionally a HuggingFace token.
-
+Python version: 3.12
+Create and activate a virtual environment
+Install dependencies:
+pip install -r requirements.txt
+pip install -e .
+Create a .env file at the repository root containing:
+Swissdox API credentials (required)
+HuggingFace token (optional, for some models)
 Data collection
-Swiss media articles are retrieved and cleaned using the Swissdox API.
-Running the download script produces a raw parquet file containing the articles.
-Output location: data/raw/swissdox_articles_raw.parquet
-
+Swiss media articles are retrieved via the Swissdox API and cleaned automatically.
+Output format: Parquet
+Output location:
+data/raw/swissdox_articles_raw.parquet
+The cleaning step standardises text fields and metadata for downstream analysis.
+Analysis pipelines
 Pipeline A – Embedded + RoBERTa
-This pipeline assigns article-level topics using multilingual embeddings, splits articles into sentences, filters sentences based on administrative keywords, and applies XLM-RoBERTa sentiment analysis at sentence level.
-Running the pipeline produces cleaned and enriched parquet files and a CSV export with sentence-level annotations.
-Outputs are stored in data/processed.
-
+A classical NLP pipeline combining multilingual embeddings and transformer-based sentiment analysis.
+Main steps:
+Article-level topic classification using multilingual embeddings
+Sentence segmentation
+Keyword-based sentence filtering (administrative focus)
+Sentence-level sentiment analysis using XLM-RoBERTa
+Outputs:
+Cleaned and enriched Parquet files
+Sentence-level CSV export
+Stored in:
+data/processed/
 Pipeline B – LLM (Apertus)
-This pipeline performs article-level classification using a locally hosted OpenAI-compatible LLM server.
-It produces topic classification, sentiment toward public administration with justification, and populism detection with justification.
-Outputs are stored as parquet files in data/processed.
-An overnight runner is available for long or resource-constrained runs and supports automatic restarts and checkpointing.
-
+An article-level annotation pipeline based on a locally hosted OpenAI-compatible LLM server.
+For each article, the pipeline produces:
+Topic classification
+Sentiment toward public administration (with justification)
+Populism detection (with justification)
+Features:
+Robust checkpointing
+Automatic restart support
+Dedicated overnight runner for long or resource-intensive jobs
+Outputs:
+data/processed/*.parquet
 Evaluation and comparison
-The evaluation framework aligns outputs from three annotation sources: the LLM pipeline, the embedded + RoBERTa pipeline, and an external GPT-based annotation pipeline.
-Input files can be provided in CSV or Parquet format and are not tracked in Git.
-The comparison produces agreement metrics, confusion matrices, aligned datasets, and publication-ready figures.
-
-lots (time series & composition)
-This project includes a plotting suite to visualize monthly dynamics and model outputs consistently across techniques.
-What it generates
-For each technique (A, B, C):
+The evaluation framework aligns and compares annotations from:
+Pipeline A (Embedded + RoBERTa)
+Pipeline B (LLM – Apertus)
+External GPT-based annotations (input only)
+The framework produces:
+Agreement metrics
+Confusion matrices
+Aligned datasets
+Publication-ready figures
+Input files may be provided in CSV or Parquet format and are not tracked in Git.
+Plots and visualisations
+A unified plotting suite ensures consistent visualisation across techniques.
+What is generated (per technique)
 Sentiment shares over time (monthly)
-Line plot showing the monthly share of POSITIVE / NEGATIVE / NEUTRAL.
+Line plot of POSITIVE / NEGATIVE / NEUTRAL shares
 Topic shares over time (monthly, stacked)
-Stacked bar chart normalized to 1, showing how topic composition evolves over time.
-Negativity + department composition (scaled, single plot)
-One combined plot where:
-the line is the monthly negativity rate (NEGATIVE / total),
-the stacked bars represent the composition of “negative” items by department proxy, scaled so that the total bar height equals the negativity rate.
-Additionally (A and B only, if populism is available):
+Normalised stacked bars (sum = 1)
+Negativity + department composition (scaled)
+Combined plot where:
+Line = monthly negativity rate
+Stacked bars = department composition of negative items
+Bar height scaled to negativity rate
+Additionally (if available):
 Populism YES share over time (monthly)
-Line plot of the monthly share of populism == YES.
-Input format
-The plotting script accepts CSV or Parquet for each technique and standardizes labels internally.
-Expected fields are standardized through rename maps (see scripts/run_comparison_plots.py).
-Technique A is article-level (deduplicated by article id).
-Techniques B and C are treated as sentence-level for plots (no deduplication).
-Run
-Example:
+Input format and assumptions
+CSV or Parquet accepted
+Label harmonisation handled internally via rename maps
+Technique A: article-level (deduplicated)
+Techniques B & C: treated as sentence-level (no deduplication)
+Example run
 python scripts/run_comparison_plots.py \
   --a data/processed/swissdox_articles_labeled_llm.parquet \
   --b data/external/2025_GPT_ANALYSIS.csv \
@@ -110,23 +127,15 @@ python scripts/run_comparison_plots.py \
   --c data/processed/swissdox_sentences_with_sentiment.parquet \
   --outdir outputs/plots \
   --no-show
-Outputs
-PNG figures are saved to the output directory (default: outputs/plots/), for example:
-APERTUS_sentiment_shares.png
-APERTUS_topic_shares_stacked.png
-APERTUS_negativity_dept_scaled.png
-APERTUS_populism_yes_share.png (if available)
-(and analogous files for the other techniques).
-
 Design principles
-The repository follows a strict separation of concerns between reusable logic, executable scripts, and exploratory notebooks.
-Pipelines are deterministic where possible, fully reproducible, and resumable.
-All models share a harmonized label space to enable direct comparison.
-
+Strict separation between:
+reusable logic (src/)
+executable scripts (scripts/)
+exploratory notebooks (notebooks/)
+Deterministic and resumable pipelines
+Harmonised label spaces across models
+Parquet used internally for robustness and performance
 Notes
-Large data files are excluded from version control.
-The LLM pipeline assumes a locally running OpenAI-compatible server.
-Parquet is used internally for performance and robustness.
-
-License and usage
-This repository is intended for academic research purposes.
+Large data files are excluded from version control
+The LLM pipeline assumes a locally running OpenAI-compatible server
+The repository is intended for academic research use
