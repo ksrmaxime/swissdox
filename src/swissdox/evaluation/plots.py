@@ -26,9 +26,17 @@ def read_table(path: str | Path) -> pd.DataFrame:
 # Canonical label spaces
 # -------------------------------
 CANON_TOPICS = [
-    "Foreign Affairs", "Culture", "Health", "Social", "Justice", "Migration", "Defence", "Sport", "Finance",
+    "Foreign Affairs", "Culture", "Health", "Social", "Justice", "Migration", "Defence", "State Politics", "Sport", "Finance",
     "Economy", "Education", "Research", "Environment", "Transports", "Energy", "Communication", "Other"
 ]
+
+def topic_color_map(cmap_name: str = "tab20"):
+    cmap = plt.get_cmap(cmap_name)
+    # stable: la couleur dépend uniquement de la position dans CANON_TOPICS
+    return {t: cmap(i % cmap.N) for i, t in enumerate(CANON_TOPICS)}
+
+TOPIC_COLORS = topic_color_map("tab20")
+
 CANON_SENTIMENT = ["POSITIVE", "NEGATIVE", "NEUTRAL"]
 CANON_POPULISM = ["YES", "NO"]
 
@@ -212,8 +220,9 @@ def plot_topic_shares_stacked(df_m: pd.DataFrame, model_name: str, *, outdir: Op
     fig, ax = plt.subplots()
     for t in shares.columns:
         vals = shares[t].values
-        ax.bar(x, vals, bottom=bottom, label=t)
+        ax.bar(x, vals, bottom=bottom, label=t, color=TOPIC_COLORS.get(t))
         bottom += vals
+
 
     ax.set_title(f"{model_name} — Topic shares over time (stacked, normalized)")
     ax.set_ylim(0, 1)
