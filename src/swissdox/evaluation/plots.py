@@ -51,7 +51,15 @@ TOPIC_TO_DEPT = {
     "Environment": "UVEK", "Transports": "UVEK", "Energy": "UVEK", "Communication": "UVEK",
     "Other": "Other",
 }
+# Canonical department order (fixed!)
 DEPT_ORDER = ["EDA", "EDI", "EJPD", "VBS", "EFD", "WBF", "UVEK", "Other"]
+
+def dept_color_map(cmap_name: str = "tab10"):
+    cmap = plt.get_cmap(cmap_name)
+    # stable: color depends ONLY on position in DEPT_ORDER
+    return {d: cmap(i % cmap.N) for i, d in enumerate(DEPT_ORDER)}
+
+DEPT_COLORS = dept_color_map("tab10")
 
 
 # -------------------------------
@@ -265,7 +273,7 @@ def plot_negativity_line_plus_dept_scaled(df_m: pd.DataFrame, model_name: str, *
 
     for d in DEPT_ORDER:
         vals = dept_scaled[d].values if d in dept_scaled.columns else np.zeros(len(months))
-        ax.bar(x, vals, bottom=bottom, label=d)
+        ax.bar(x, vals, bottom=bottom, label=d, color=DEPT_COLORS.get(d))
         bottom += vals
 
     ax.plot(x, neg_rate.values, linewidth=2)
