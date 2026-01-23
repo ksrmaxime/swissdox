@@ -52,14 +52,23 @@ TOPIC_TO_DEPT = {
     "Other": "Other",
 }
 # Canonical department order (fixed!)
+# Canonical department order (fixed)
 DEPT_ORDER = ["EDA", "EDI", "EJPD", "VBS", "EFD", "WBF", "UVEK", "Other"]
 
-def dept_color_map(cmap_name: str = "tab10"):
-    cmap = plt.get_cmap(cmap_name)
-    # stable: color depends ONLY on position in DEPT_ORDER
-    return {d: cmap(i % cmap.N) for i, d in enumerate(DEPT_ORDER)}
+# Hard-coded matplotlib tab10 colors (stable across everything)
+DEPT_COLORS = {
+    "EDA":  "#1f77b4",  # blue
+    "EDI":  "#ff7f0e",  # orange
+    "EJPD": "#2ca02c",  # green
+    "VBS":  "#d62728",  # red
+    "EFD":  "#9467bd",  # purple
+    "WBF":  "#8c564b",  # brown
+    "UVEK": "#e377c2",  # pink
+    "Other":"#7f7f7f",  # grey
+}
 
-DEPT_COLORS = dept_color_map("tab10")
+FALLBACK_COLOR = "#7f7f7f"
+
 
 
 # -------------------------------
