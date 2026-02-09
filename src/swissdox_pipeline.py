@@ -57,6 +57,29 @@ DEPARTMENTS = [
 
 ALL_KEYWORDS: List[str] = [*DE_TERMS, *DE_LEVEL, *FR_TERMS, *FR_LEVEL, *DEPARTMENTS]
 
+KW_SENT = [
+    "Bürokratie","Berner Verwaltung","Papierkrieg","Verwaltung","Bundesverwaltung",
+    "Beamtenapparat","Amtsschimmel","Regulierungsdichte","Behörden","Bürokraten",
+    "Beamte","Staatsangestellte",
+    "Bureaucratie","Administration publique","Administration fédérale","Appareil administratif",
+    "Appareil étatique","Appareil de l’État","Autorités administratives","Services de l’État",
+    "Services publics","Fonction publique","Pouvoir administratif","Autorités cantonales",
+    "Administration centrale","Départements fédéraux","Offices fédéraux","Organes de l’État",
+    "Technocratie","Bureaucrates","Fonctionnaires","Employés de l'État",
+    "VBS","DDPS","Eidgenössische Departement für Verteidigung, Bevölkerungsschutz und Sport",
+    "Département fédéral de la défense, de la protection de la population et des sports",
+    "EDA","DFAE","Eidgenössische Departement für auswärtige Angelegenheiten",
+    "Département fédéral des affaires étrangères",
+    "UVEK","DETEC","Eidgenössische Departement für Umwelt, Verkehr, Energie und Kommunikation",
+    "Département fédéral de l'environnement, des transports, de l'énergie et de la communication",
+    "EJPD","DFJP","Eidgenössische Justiz- und Polizeidepartement",
+    "Département fédéral de justice et police",
+    "EDI","DFI","Eidgenössische Departement des Innern","Département fédéral de l'intérieur",
+    "EFD","DFF","Département fédéral des finances",
+    "WBF","DEFR","Eidgenössische Departement für Wirtschaft, Bildung und Forschung",
+    "Département fédéral de l'économie, de la formation et de la recherche",
+]
+
 
 def build_query_payload(
     *,
@@ -196,44 +219,57 @@ def clean_articles_df(df_raw: pd.DataFrame) -> pd.DataFrame:
 # -----------------------------
 # Sentence split + keyword filter (one row per sentence)
 # -----------------------------
-def build_kw_pattern(keywords: Sequence[str]) -> re.Pattern:
-    pats: List[str] = []
-    for k in keywords:
-        if isinstance(k, str) and k.isupper() and len(k) <= 4:
-            pats.append(rf"\b{re.escape(k)}\b")
-        else:
-            pats.append(re.escape(str(k)))
-    return re.compile("|".join(pats), flags=re.IGNORECASE)
-
-
 def split_filter_sentences(df_articles: pd.DataFrame, *, content_col: str = "content") -> pd.DataFrame:
     if content_col not in df_articles.columns:
         raise ValueError(f"Missing '{content_col}' column")
 
-    kw_pat = build_kw_pattern(ALL_KEYWORDS)
+    # Pattern UNIQUEMENT pour le découpage par phrases
+    kw_pat = build_kw_pattern(KW_SENT)
 
     tmp = df_articles.copy()
     tmp["_content"] = tmp[content_col].fillna("").astype(str)
 
-    # PREFILTER: ne garder que les articles contenant au moins un keyword
+    # PREFILTER: garder seulement les articles qui contiennent un des KW_SENT
     tmp = tmp[tmp["_content"].str.contains(kw_pat, na=False)].copy()
 
+    # Split en phrases puis explode
     tmp["sentence"] = tmp["_content"].str.split(r"(?<=[.!?])\s+", regex=True)
     tmp = tmp.explode("sentence", ignore_index=True)
 
     tmp["sentence"] = tmp["sentence"].astype(str).str.strip()
     tmp = tmp[tmp["sentence"].ne("")].copy()
 
-    mask = tmp["sentence"].str.contains(kw_pat, na=False)
-    tmp = tmp[mask].copy()
+    # Filtrer phrases contenant un KW_SENT
+    tmp = tmp[tmp["sentence"].str.contains(kw_pat, na=False)].copy()
 
     tmp["matched_keywords"] = tmp["sentence"].str.findall(kw_pat).apply(
         lambda lst: ", ".join(sorted({x.strip() for x in lst if isinstance(x, str) and x.strip()}))
     )
 
-    tmp = tmp.drop(columns=["_content"], errors="ignore")
-    tmp.insert(0, "sentence_id", range(1, len(tmp) + 1))
-    return tmp
+    # Construire un identifiant article stable (Swissdox a souvent id ou content_id)
+    # On privilégie content_id, sinon id.
+    if "content_id" in tmp.columns:
+        tmp["article_id"] = tmp["content_id"].astype(str)
+    elif "id" in tmp.columns:
+        tmp["article_id"] = tmp["id"].astype(str)
+    else:
+        # fallback: index original
+        tmp["article_id"] = tmp.index.astype(str)
+
+    # Colonnes de sortie SANS content
+    keep_cols = []
+    for c in ["article_id", "pubtime", "medium_code", "medium_name", "rubric", "regional",
+              "doctype", "doctype_description", "language", "char_count", "dateline",
+              "head", "subhead", "content_id", "id"]:
+        if c in tmp.columns and c not in keep_cols:
+            keep_cols.append(c)
+
+    keep_cols += ["sentence", "matched_keywords"]
+
+    out = tmp[keep_cols].copy()
+    out.insert(0, "sentence_id", range(1, len(out) + 1))
+    return out
+
 
 
 
@@ -295,11 +331,14 @@ def run_pipeline(
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
+       # Articles: 1 ligne = 1 article
     p_articles = out_dir / "swissdox_articles.parquet"
+    df_articles.to_parquet(p_articles, index=False)
+
+    # Sentences: seulement phrases matchées, SANS content
+    df_sent = split_filter_sentences(df_articles)
     p_sent = out_dir / "swissdox_sentences.parquet"
     p_sent_csv = out_dir / "swissdox_sentences.csv"
-
-    df_articles.to_parquet(p_articles, index=False)
     df_sent.to_parquet(p_sent, index=False)
     df_sent.to_csv(p_sent_csv, index=False)
 
