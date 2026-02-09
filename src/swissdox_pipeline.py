@@ -213,10 +213,12 @@ def split_filter_sentences(df_articles: pd.DataFrame, *, content_col: str = "con
     kw_pat = build_kw_pattern(ALL_KEYWORDS)
 
     tmp = df_articles.copy()
-    tmp["sentence"] = tmp[content_col].fillna("").astype(str)
+    tmp["_content"] = tmp[content_col].fillna("").astype(str)
 
-    # Simple, fast split: punctuation + whitespace
-    tmp["sentence"] = tmp["sentence"].str.split(r"(?<=[.!?])\s+", regex=True)
+    # PREFILTER: ne garder que les articles contenant au moins un keyword
+    tmp = tmp[tmp["_content"].str.contains(kw_pat, na=False)].copy()
+
+    tmp["sentence"] = tmp["_content"].str.split(r"(?<=[.!?])\s+", regex=True)
     tmp = tmp.explode("sentence", ignore_index=True)
 
     tmp["sentence"] = tmp["sentence"].astype(str).str.strip()
@@ -229,8 +231,10 @@ def split_filter_sentences(df_articles: pd.DataFrame, *, content_col: str = "con
         lambda lst: ", ".join(sorted({x.strip() for x in lst if isinstance(x, str) and x.strip()}))
     )
 
+    tmp = tmp.drop(columns=["_content"], errors="ignore")
     tmp.insert(0, "sentence_id", range(1, len(tmp) + 1))
     return tmp
+
 
 
 # -----------------------------

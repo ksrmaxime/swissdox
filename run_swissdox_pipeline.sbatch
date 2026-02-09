@@ -2,12 +2,17 @@
 #SBATCH --job-name=swissdox_pipe
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=16G
+#SBATCH --mem=32G
 #SBATCH --time=02:00:00
 #SBATCH --output=logs/swissdox_%j.out
 #SBATCH --error=logs/swissdox_%j.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
+
+export OMP_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
 
 set -euo pipefail
 
