@@ -23,7 +23,7 @@ def main() -> None:
 
     query_name = f"BuerokratieVerwaltung_{datetime.now():%Y%m%d_%H%M%S}"
     comment = "CURNAGL pipeline: query -> clean -> sentence split"
-    expiration_date = "2026-01-30"
+    expiration_date = "2026-03-30"
 
     out_paths = run_pipeline(
         start_date=args.start,
