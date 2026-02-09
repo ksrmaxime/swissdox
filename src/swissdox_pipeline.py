@@ -219,6 +219,15 @@ def clean_articles_df(df_raw: pd.DataFrame) -> pd.DataFrame:
 # -----------------------------
 # Sentence split + keyword filter (one row per sentence)
 # -----------------------------
+def build_kw_pattern(keywords: Sequence[str]) -> re.Pattern:
+    pats: List[str] = []
+    for k in keywords:
+        if isinstance(k, str) and k.isupper() and len(k) <= 4:
+            pats.append(rf"\b{re.escape(k)}\b")
+        else:
+            pats.append(re.escape(str(k)))
+    return re.compile("|".join(pats), flags=re.IGNORECASE)
+
 def split_filter_sentences(df_articles: pd.DataFrame, *, content_col: str = "content") -> pd.DataFrame:
     if content_col not in df_articles.columns:
         raise ValueError(f"Missing '{content_col}' column")
