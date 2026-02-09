@@ -45,7 +45,8 @@ python scripts/run_pr_apertus.py \
   --outdir "$OUTDIR" \
   --model-path /reference/LLM/swiss-ai/Apertus-8B-Instruct-2509 \
   --dtype bf16 \
-  --batch-size 60 \
+  --items-per-prompt 60 \
+  --prompts-per-batch 8 \
   --max-tokens 250 \
   --temperature 0.0 \
   --resume

@@ -18,7 +18,9 @@ def main() -> None:
     ap.add_argument("--model-path", required=True)
     ap.add_argument("--dtype", default="bf16", choices=["bf16", "fp16", "auto"])
 
-    ap.add_argument("--batch-size", type=int, default=60)
+    ap.add_argument("--items-per-prompt", type=int, default=60)
+    ap.add_argument("--prompts-per-batch", type=int, default=8)
+
     ap.add_argument("--max-tokens", type=int, default=250)
     ap.add_argument("--temperature", type=float, default=0.0)
     ap.add_argument("--resume", action="store_true")
@@ -35,7 +37,8 @@ def main() -> None:
         in_parquet=workdir / args.input,
         out_dir=outdir,
         scratch_dir=scratchdir,
-        batch_size=int(args.batch_size),
+        items_per_prompt=int(args.items_per_prompt),
+        prompts_per_batch=int(args.prompts_per_batch),
         max_tokens=int(args.max_tokens),
         temperature=float(args.temperature),
         resume=bool(args.resume),

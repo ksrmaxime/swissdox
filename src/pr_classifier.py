@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-from client import TransformersClient, TransformersConfig, LLMClient
+from client import LLMClient, TransformersClient, TransformersConfig
 from pr_prompt import SYSTEM_MESSAGE, TASK_INSTRUCTIONS
 
 _JSON_ARRAY_RE = re.compile(r"\[[\s\S]*\]", re.MULTILINE)
@@ -21,15 +21,22 @@ class PRConfig:
     out_dir: Path
     scratch_dir: Path
 
-    batch_size: int = 60
+    # batching (GPU-optimized)
+    items_per_prompt: int = 60        # sentences per prompt
+    prompts_per_batch: int = 8        # prompts generated together on GPU
+
+    # LLM
     max_tokens: int = 250
     temperature: float = 0.0
 
+    # robustness
     max_retries: int = 3
     retry_sleep_s: float = 2.0
 
+    # resume
     resume: bool = True
 
+    # outputs
     out_parquet_name: str = "swissdox_sentences_with_pr.parquet"
     out_csv_name: str = "swissdox_sentences_with_pr.csv"
     ckpt_name: str = "pr_checkpoint.parquet"
@@ -59,10 +66,9 @@ def _parse_output(text: str) -> List[Dict[str, Any]]:
 
 
 def _build_messages(items: List[Tuple[str, str]]) -> List[Dict[str, str]]:
-    # On garde la description EXACTE. On ajoute seulement l'input wrapper.
+    # Keep TASK_INSTRUCTIONS EXACT. Only add input wrapper.
     lines = ["SENTENCES:"]
     for sid, sent in items:
-        # input stable: id + texte
         lines.append(f'- id="{sid}" sentence="{sent}"')
     content = TASK_INSTRUCTIONS + "\n\n" + "\n".join(lines)
     return [
@@ -82,7 +88,6 @@ def _load_df(path: Path) -> pd.DataFrame:
 
 
 def _ckpt_path(cfg: PRConfig) -> Path:
-    # checkpoint sur scratch (rapide), pour reprise
     return cfg.scratch_dir / cfg.ckpt_name
 
 
@@ -111,7 +116,7 @@ def classify_pr(cfg: PRConfig, llm: LLMClient) -> Dict[str, Path]:
     done: Dict[str, int] = _load_ckpt(cfg) if cfg.resume else {}
     print(f"[PR] total={len(df)} already_done={len(done)}")
 
-    # worklist (skip done)
+    # build todo list
     todo: List[Tuple[str, str]] = []
     for sid, sent in zip(df["sentence_id"].tolist(), df["sentence"].tolist()):
         if sid in done:
@@ -120,45 +125,64 @@ def classify_pr(cfg: PRConfig, llm: LLMClient) -> Dict[str, Path]:
             todo.append((sid, sent))
 
     results: Dict[str, int] = dict(done)
-    print(f"[PR] to_do={len(todo)} batch_size={cfg.batch_size}")
+    print(
+        f"[PR] to_do={len(todo)} items_per_prompt={cfg.items_per_prompt} "
+        f"prompts_per_batch={cfg.prompts_per_batch}"
+    )
 
-    for bi in range(0, len(todo), cfg.batch_size):
-        batch = todo[bi : bi + cfg.batch_size]
-        messages = _build_messages(batch)
+    # Split todo into prompts of items_per_prompt
+    prompts: List[List[Tuple[str, str]]] = [
+        todo[i : i + cfg.items_per_prompt]
+        for i in range(0, len(todo), cfg.items_per_prompt)
+    ]
+
+    # Process groups of prompts_per_batch on GPU
+    for gi in range(0, len(prompts), cfg.prompts_per_batch):
+        prompt_group = prompts[gi : gi + cfg.prompts_per_batch]
+        batch_messages = [_build_messages(p) for p in prompt_group]
 
         last_err: Optional[Exception] = None
         for attempt in range(1, cfg.max_retries + 1):
             try:
-                raw = llm.chat(
-                    messages=messages,
+                # Need batched backend
+                if not hasattr(llm, "chat_batch"):
+                    raise RuntimeError("LLM client does not implement chat_batch().")
+
+                outputs = llm.chat_batch(  # type: ignore[attr-defined]
+                    batch_messages=batch_messages,
                     temperature=cfg.temperature,
                     max_tokens=cfg.max_tokens,
                 )
-                parsed = _parse_output(raw)
-                got = {d["id"]: int(d["pr"]) for d in parsed}
 
-                # coverage: si un id manque -> 0 (conservateur)
-                for sid, _sent in batch:
-                    results[sid] = int(got.get(sid, 0))
+                # Parse each output
+                for p_items, raw in zip(prompt_group, outputs):
+                    parsed = _parse_output(raw)
+                    got = {d["id"]: int(d["pr"]) for d in parsed}
+                    for sid, _sent in p_items:
+                        results[sid] = int(got.get(sid, 0))
 
                 last_err = None
                 break
+
             except Exception as e:
                 last_err = e
                 if attempt < cfg.max_retries:
                     time.sleep(cfg.retry_sleep_s * attempt)
                 else:
-                    for sid, _sent in batch:
-                        results[sid] = 0
+                    # fallback: conservative 0 for all items in this group
+                    for p_items in prompt_group:
+                        for sid, _sent in p_items:
+                            results[sid] = 0
 
         if last_err is not None:
-            print(f"[PR][WARN] batch_index={bi//cfg.batch_size} failed -> fallback 0. err={last_err}")
+            print(f"[PR][WARN] group={gi//cfg.prompts_per_batch} failed -> fallback 0. err={last_err}")
 
-        # checkpoint toutes les ~10 batches
-        if (bi // cfg.batch_size) % 10 == 0:
+        # checkpoint every ~10 groups
+        if (gi // cfg.prompts_per_batch) % 10 == 0:
             _save_ckpt(cfg, results)
             print(f"[PR] checkpoint saved: {len(results)}")
 
+    # merge back
     df["pr"] = df["sentence_id"].map(lambda x: int(results.get(str(x), 0)))
 
     out_parquet = cfg.out_dir / cfg.out_parquet_name
@@ -166,7 +190,7 @@ def classify_pr(cfg: PRConfig, llm: LLMClient) -> Dict[str, Path]:
     df.to_parquet(out_parquet, index=False)
     df.to_csv(out_csv, index=False)
 
-    # dernier checkpoint complet
+    # final checkpoint full
     _save_ckpt(cfg, dict(zip(df["sentence_id"].astype(str), df["pr"].astype(int))))
 
     return {"out_parquet": out_parquet, "out_csv": out_csv, "checkpoint": _ckpt_path(cfg)}

@@ -22,6 +22,15 @@ class LLMClient(Protocol):
         response_format: Optional[Dict[str, Any]] = None,
     ) -> str: ...
 
+    # Optional (only for local transformers client)
+    def chat_batch(
+        self,
+        batch_messages: List[List[Dict[str, str]]],
+        temperature: float = 0.0,
+        max_tokens: int = 512,
+        response_format: Optional[Dict[str, Any]] = None,
+    ) -> List[str]: ...
+
 
 # =========================
 # OpenAI-compatible backend
@@ -175,3 +184,45 @@ class TransformersClient:
         if text.startswith(prompt):
             return text[len(prompt):].lstrip()
         return text
+
+    def chat_batch(
+        self,
+        batch_messages: List[List[Dict[str, str]]],
+        temperature: float = 0.0,
+        max_tokens: int = 512,
+        response_format: Optional[Dict[str, Any]] = None,
+    ) -> List[str]:
+        # Build one prompt per message list
+        prompts = [
+            self.tokenizer.apply_chat_template(m, tokenize=False, add_generation_prompt=True)
+            for m in batch_messages
+        ]
+
+        inputs = self.tokenizer(
+            prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+        )
+        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+
+        do_sample = float(temperature) > 0.0
+
+        with self.torch.inference_mode():
+            out = self.model.generate(
+                **inputs,
+                max_new_tokens=int(max_tokens),
+                do_sample=do_sample,
+                temperature=float(temperature) if do_sample else None,
+            )
+
+        decoded = self.tokenizer.batch_decode(out, skip_special_tokens=True)
+
+        # Strip prompt prefix from each decoded output
+        cleaned: List[str] = []
+        for full, prompt in zip(decoded, prompts):
+            if full.startswith(prompt):
+                cleaned.append(full[len(prompt):].lstrip())
+            else:
+                cleaned.append(full)
+        return cleaned
