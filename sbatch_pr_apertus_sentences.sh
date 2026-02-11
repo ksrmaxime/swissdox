@@ -34,7 +34,7 @@ python scripts/run_pr_apertus.py \
   --dtype bf16 \
   --items-per-prompt 60 \
   --prompts-per-batch 8 \
-  --max-tokens 250 \
+  --max-tokens 2000 \
   --temperature 0.0 \
   --resume
 
