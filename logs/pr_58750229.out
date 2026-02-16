@@ -1,0 +1,35 @@
+JOBID=58750229 HOST=dnagpu008 DATE=2026-02-11T15:52:43+01:00
+GPU 0: NVIDIA A100-PCIE-40GB (UUID: GPU-a5a55e90-107a-2756-f1f6-35777479120a)
+[TSP] groups=0 done≈0/22965 elapsed_s=83.8
+[TSP] groups=5 done≈2400/22965 elapsed_s=483.4
+[TSP] groups=10 done≈4800/22965 elapsed_s=889.3
+[TSP] groups=15 done≈7200/22965 elapsed_s=1290.2
+[TSP] groups=20 done≈9600/22965 elapsed_s=1699.0
+[TSP] groups=25 done≈12000/22965 elapsed_s=2116.6
+[TSP] groups=30 done≈14400/22965 elapsed_s=2524.3
+[TSP] groups=35 done≈16800/22965 elapsed_s=2934.9
+[TSP] groups=40 done≈19200/22965 elapsed_s=3344.2
+[TSP] groups=45 done≈21600/22965 elapsed_s=3750.8
+[DONE] /work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/pr/swissdox_sentences_with_t_sp_p.parquet | /work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/pr/swissdox_sentences_with_t_sp_p.csv | ckpt=/scratch/mkaiser3/swissdox/pr/tsp_ckpt.parquet
+[DEBUG] failures (if any) in: /scratch/mkaiser3/swissdox/pr/tsp_failures
+Wed Feb 11 16:58:17 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.82.07              Driver Version: 580.82.07      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-PCIE-40GB          On  |   00000000:E2:00.0 Off |                    0 |
+| N/A   48C    P0             41W /  250W |    3645MiB /  40960MiB |      1%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Done.

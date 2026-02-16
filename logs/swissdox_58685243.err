@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/scripts/run_swissdox_pipeline.py", line 47, in <module>
+    main()
+  File "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/scripts/run_swissdox_pipeline.py", line 28, in main
+    out_paths = run_pipeline(
+                ^^^^^^^^^^^^^
+  File "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/src/swissdox_pipeline.py", line 329, in run_pipeline
+    df_sent = split_filter_sentences(df_articles)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/src/swissdox_pipeline.py", line 227, in split_filter_sentences
+    kw_pat = build_kw_pattern(KW_SENT)
+             ^^^^^^^^^^^^^^^^
+NameError: name 'build_kw_pattern' is not defined

@@ -1,0 +1,29 @@
+JOBID=58741277 HOST=dnagpu008 DATE=2026-02-11T14:13:30+01:00
+GPU 0: NVIDIA A100-PCIE-40GB (UUID: GPU-a5a55e90-107a-2756-f1f6-35777479120a)
+[TSP] groups=0 done≈0/22965 elapsed_s=87.5
+[TSP] groups=10 done≈4800/22965 elapsed_s=890.2
+[TSP] groups=20 done≈9600/22965 elapsed_s=1697.6
+[TSP] groups=30 done≈14400/22965 elapsed_s=2520.4
+[TSP] groups=40 done≈19200/22965 elapsed_s=3338.4
+[DONE] /work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/pr/swissdox_sentences_with_t_sp_p.parquet | /work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/pr/swissdox_sentences_with_t_sp_p.csv | ckpt=/scratch/mkaiser3/swissdox/pr/tsp_ckpt.parquet
+Wed Feb 11 15:20:51 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.82.07              Driver Version: 580.82.07      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-PCIE-40GB          On  |   00000000:E2:00.0 Off |                    0 |
+| N/A   46C    P0             42W /  250W |    3645MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Done.

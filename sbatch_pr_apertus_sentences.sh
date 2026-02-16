@@ -36,7 +36,6 @@ python scripts/run_pr_apertus.py \
   --prompts-per-batch 30 \
   --max-tokens 2000 \
   --temperature 0.0 \
-  --resume False
 
 nvidia-smi || true
 echo "Done."

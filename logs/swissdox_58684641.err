@@ -1,0 +1,2 @@
+/var/spool/slurm/d/job58684641/slurm_script: line 35: 3908518 Killed                  python scripts/run_swissdox_pipeline.py --start 2025-01-01 --end 2025-12-31 --max-results 20000 --outdir data/processed/swissdox
+slurmstepd: error: Detected 1 oom_kill event in StepId=58684641.batch. Some of the step tasks have been OOM Killed.

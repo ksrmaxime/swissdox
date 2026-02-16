@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/scripts/run_swissdox_pipeline.py", line 47, in <module>
+    main()
+  File "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/scripts/run_swissdox_pipeline.py", line 28, in main
+    out_paths = run_pipeline(
+                ^^^^^^^^^^^^^
+  File "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/src/swissdox_pipeline.py", line 311, in run_pipeline
+    qid = client.submit_query(
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/src/swissdox_pipeline.py", line 143, in submit_query
+    raise RuntimeError(f"Swissdox /query failed ({r.status_code}): {r.text[:2000]}")
+RuntimeError: Swissdox /query failed (406): {"result": "failed", "message": "You've exceeded number of queries. Please try again in five minutes"}

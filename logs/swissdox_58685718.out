@@ -1,0 +1,12 @@
+Python 3.12.1
+/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/.venv/bin/python
+[Swissdox] queryId=a72cd254-797d-4de3-b4e8-85475dfa9a4b
+[Swissdox] downloadUrl=https://swissdox.linguistik.uzh.ch/api/download/a72cd254-797d-4de3-b4e8-85475dfa9a4b__2026_02_09T11_23_57.tsv.xz
+[Swissdox] raw shape=(8787, 15)
+[Swissdox] cleaned articles shape=(8787, 15)
+[Swissdox] sentences matched shape=(22965, 18)
+[DONE] Outputs:
+  - articles_parquet: data/processed/swissdox/swissdox_articles.parquet
+  - sentences_parquet: data/processed/swissdox/swissdox_sentences.parquet
+  - sentences_csv: data/processed/swissdox/swissdox_sentences.csv
+Job finished.

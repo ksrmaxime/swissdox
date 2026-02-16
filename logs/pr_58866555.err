@@ -1,0 +1,8 @@
+usage: run_pr_apertus.py [-h] --workdir WORKDIR --scratchdir SCRATCHDIR
+                         --input INPUT --outdir OUTDIR --model-path MODEL_PATH
+                         [--dtype {bf16,fp16}]
+                         [--items-per-prompt ITEMS_PER_PROMPT]
+                         [--prompts-per-batch PROMPTS_PER_BATCH]
+                         [--max-tokens MAX_TOKENS] [--temperature TEMPERATURE]
+                         [--resume]
+run_pr_apertus.py: error: unrecognized arguments: False

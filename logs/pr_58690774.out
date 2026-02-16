@@ -1,0 +1,29 @@
+JOBID=58690774 HOST=dnagpu002 DATE=2026-02-09T15:17:46+01:00
+GPU 0: NVIDIA A100-PCIE-40GB (UUID: GPU-05c27d52-0d00-690e-8f88-70fd709244b9)
+[PR] groups=0 done≈0/22965 elapsed_s=482.6
+[PR] groups=10 done≈4800/22965 elapsed_s=1215.1
+[PR] groups=20 done≈9600/22965 elapsed_s=1954.1
+[PR] groups=30 done≈14400/22965 elapsed_s=2708.3
+[PR] groups=40 done≈19200/22965 elapsed_s=3457.7
+[DONE] /work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/pr/swissdox_sentences_with_pr.parquet | /work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/pr/swissdox_sentences_with_pr.csv | ckpt=/scratch/mkaiser3/swissdox/pr/pr_ckpt.parquet
+Mon Feb  9 16:47:02 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.82.07              Driver Version: 580.82.07      CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-PCIE-40GB          On  |   00000000:21:00.0 Off |                    0 |
+| N/A   33C    P0             37W /  250W |       0MiB /  40960MiB |      1%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Done.

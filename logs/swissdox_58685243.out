@@ -1,0 +1,6 @@
+Python 3.12.1
+/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/.venv/bin/python
+[Swissdox] queryId=1bfaf702-1a2a-4a95-bd29-502caf421608
+[Swissdox] downloadUrl=https://swissdox.linguistik.uzh.ch/api/download/1bfaf702-1a2a-4a95-bd29-502caf421608__2026_02_09T11_10_44.tsv.xz
+[Swissdox] raw shape=(8787, 15)
+[Swissdox] cleaned articles shape=(8787, 15)
