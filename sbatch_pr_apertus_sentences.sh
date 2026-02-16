@@ -32,11 +32,11 @@ python scripts/run_pr_apertus.py \
   --outdir "$OUTDIR" \
   --model-path /reference/LLM/swiss-ai/Apertus-8B-Instruct-2509 \
   --dtype bf16 \
-  --items-per-prompt 60 \
-  --prompts-per-batch 8 \
+  --items-per-prompt 8 \
+  --prompts-per-batch 30 \
   --max-tokens 2000 \
   --temperature 0.0 \
-  --resume
+  --resume False
 
 nvidia-smi || true
 echo "Done."
