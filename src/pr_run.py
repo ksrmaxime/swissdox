@@ -135,7 +135,8 @@ def _parse(txt: str) -> Dict[str, Result]:
             sp = 0
 
         pp = int(el["p"])
-        pp = 1 if pp == 1 else 0
+        if pp not in (-1, 0, 1):
+            pp = 0
 
         j = str(el.get("j", "")).strip()
         if j is None or j == "nan":
