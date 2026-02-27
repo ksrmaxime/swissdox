@@ -14,7 +14,7 @@ SYSTEM_PROMPT = (
 USER_TEMPLATE = """Decide if the sentence is related to Switzerland.
 
 Return YES if Switzerland is explicitly mentioned OR clearly implied by Swiss-specific context.
-Return NO only if the sentence is clearly about other countries/contexts with no Swiss anchor, or fully generic with no identifiable Swiss link.
+Return NO only if the sentence is clearly about other countries/contexts with no Swiss anchor.
 
 Strong Swiss cues (=> YES):
 - words: Schweiz, schweizerisch, Schweizer, Eidgenossenschaft, Bund, Bundesrat, Parlament, Nationalrat, Ständerat

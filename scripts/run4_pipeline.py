@@ -1,4 +1,4 @@
-# run3_pipeline.py
+# run4_pipeline.py
 import sys
 from pathlib import Path
 
@@ -13,11 +13,11 @@ import pandas as pd
 from src.client_src import TransformersClient, LLMConfig
 from src.runner_src import run_llm_dataframe, RunConfig
 
-import run3_prompts as run3_prompts
-from run3_config import build_sentences_to_send_mask
+import run4_prompts as run4_prompts
+from run4_config import build_sentences_to_send_mask
 
 
-_ALLOWED = set(run3_prompts.TOPICS)
+_ALLOWED = set(run4_prompts.TOPICS)
 
 def parse_topic(raw: str) -> str | pd._libs.missing.NAType:
     """
@@ -101,7 +101,7 @@ def main() -> int:
         return send_mask
 
     def _build_prompt(row: pd.Series, text_col: str) -> str:
-        return run3_prompts.build_user_prompt(row, text_col=text_col)
+        return run4_prompts.build_user_prompt(row, text_col=text_col)
 
     def _parse(raw: str) -> dict:
         topic = parse_topic(raw)
@@ -114,7 +114,7 @@ def main() -> int:
         df=df,
         cfg=run_cfg,
         client=client,
-        system_prompt=run3_prompts.SYSTEM_PROMPT,
+        system_prompt=run4_prompts.SYSTEM_PROMPT,
         select_mask_fn=_select_mask,
         build_prompt_fn=_build_prompt,
         parse_fn=_parse,
