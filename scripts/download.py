@@ -5,7 +5,7 @@ from pathlib import Path
 
 import argparse
 
-from swissdox_pipeline import run_pipeline
+from download_src import run_pipeline
 
 
 def main() -> None:
