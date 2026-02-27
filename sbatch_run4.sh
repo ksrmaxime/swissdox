@@ -32,7 +32,7 @@ echo "DATE=$(date -Is)"
 nvidia-smi -L || true
 
 python scripts/run4_pipeline.py \
-  --input  "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/swissdox_sentences_with_s_t_s.parquet" \
+  --input  "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox_sentences_with_s_t_s.parquet" \
   --output_base "$OUTBASE" \
   --model_path /reference/LLM/swiss-ai/Apertus-8B-Instruct-2509 \
   --dtype bf16 \
