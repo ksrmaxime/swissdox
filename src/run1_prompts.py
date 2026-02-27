@@ -8,7 +8,7 @@ import pandas as pd
 
 SYSTEM_PROMPT = (
     "You are a STRICT text classification system.\n"
-    "Task: decide whether the given sentence is related to Switzerland.\n"
+    "Task: decide whether the given sentence is related to Swiss bureaucracy or foreign bureaucracy.\n"
     "Answer with EXACTLY ONE token and nothing else:\n"
     "YES\n"
     "or\n"
@@ -16,11 +16,8 @@ SYSTEM_PROMPT = (
 )
 
 USER_TEMPLATE = """
-The sentence is coming from a swiss newspapers, but sometime the media article is talking about what is happening with other countries bureaucracy.
-
-Decision rules :
-The sentence should be considered as talking about Switzerland when the topic is an internal swiss related topic or when it's a foreign affaires directly impacting switzerland.
-The only case where it would not be considered swiss related, is when it's an internal bureaucracy topic from another country like for exemple shutdown of the US government, strike in the french administration or Brussels internal discussion etc...
+The sentence is coming from a swiss newspapers, so it's often about Switzerland, answer = YES
+But sometimes, the sentence talks about foreign countries or foreign bureaucracy, even if it comes from a swiss newspaper, answer = NO
 
 Sentence:
 {sentence}
