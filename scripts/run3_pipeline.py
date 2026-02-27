@@ -17,33 +17,25 @@ import run3_prompts as run3_prompts
 from run3_config import build_sentences_to_send_mask
 
 
-_ALLOWED = set(run3_prompts.TOPICS)
-
-def parse_topic(raw: str) -> str | pd._libs.missing.NAType:
+def parse_sp(raw: str) -> int | pd._libs.missing.NAType:
     """
-    Expected: one of the allowed topics, as a single string.
-    Tolerant parsing:
-      - trims quotes/spaces
-      - if extra text: tries to extract any valid topic token/phrase
+    Expected output: exactly one token in {-1, 0, 1}.
+    Tolerant parsing: if there is noise, extract the last valid token.
     """
     if raw is None:
         return pd.NA
 
     s = str(raw).strip()
 
-    # common: quoted output
-    s2 = s.strip().strip('"').strip("'").strip()
+    # Extract tokens -1, 0, 1 (as standalone)
+    matches = re.findall(r"(?<!\d)(-1|0|1)(?!\d)", s)
+    if not matches:
+        return pd.NA
 
-    if s2 in _ALLOWED:
-        return s2
-
-    # If noisy: find any allowed topic as a whole phrase
-    # (longest first to avoid partial matches)
-    for t in sorted(_ALLOWED, key=len, reverse=True):
-        if re.search(rf"\b{re.escape(t)}\b", s2):
-            return t
-
-    return pd.NA
+    tok = matches[-1]
+    if tok not in ("-1", "0", "1"):
+        return pd.NA
+    return int(tok)
 
 
 def main() -> int:
@@ -59,27 +51,32 @@ def main() -> int:
 
     ap.add_argument("--text_col", default="sentence")
     ap.add_argument("--swiss_related_col", default="SWISS_RELATED")
-    ap.add_argument("--topic_col", default="SENTIMENT")
+    ap.add_argument("--sentiment_col", default="SENTIMENT")  # sentiment toward public administration
 
     ap.add_argument("--batch_size", type=int, default=64)
     ap.add_argument("--temperature", type=float, default=0.0)
-    ap.add_argument("--max_new_tokens", type=int, default=12)
+    ap.add_argument("--max_new_tokens", type=int, default=4)
 
     args = ap.parse_args()
 
     df = pd.read_parquet(args.input) if args.input.endswith(".parquet") else pd.read_csv(args.input)
 
+    # Select only SWISS_RELATED == YES (+ non-empty sentence) via run3_config
     send_mask = build_sentences_to_send_mask(
         df,
         text_col=args.text_col,
         swiss_related_col=args.swiss_related_col,
     )
 
-    # Ensure topic column exists
-    if args.topic_col not in df.columns:
-        df[args.topic_col] = pd.Series(pd.NA, index=df.index, dtype="string")
+    # Ensure sentiment column exists (nullable int)
+    if args.sentiment_col not in df.columns:
+        df[args.sentiment_col] = pd.Series(pd.NA, index=df.index, dtype="Int64")
     else:
-        df[args.topic_col] = df[args.topic_col].astype("string")
+        # keep nullable ints if possible
+        try:
+            df[args.sentiment_col] = df[args.sentiment_col].astype("Int64")
+        except Exception:
+            df[args.sentiment_col] = pd.Series(df[args.sentiment_col], index=df.index, dtype="Int64")
 
     client = TransformersClient(
         LLMConfig(
@@ -104,11 +101,11 @@ def main() -> int:
         return run3_prompts.build_user_prompt(row, text_col=text_col)
 
     def _parse(raw: str) -> dict:
-        topic = parse_topic(raw)
-        # hard fallback to "Other" if parse fails (optional but usually desirable)
-        if pd.isna(topic):
-            topic = "Other"
-        return {args.topic_col: topic}
+        sp = parse_sp(raw)
+        # if parsing fails, conservative fallback is 0 (as your guideline says)
+        if pd.isna(sp):
+            sp = 0
+        return {args.sentiment_col: sp}
 
     out = run_llm_dataframe(
         df=df,
@@ -118,8 +115,8 @@ def main() -> int:
         select_mask_fn=_select_mask,
         build_prompt_fn=_build_prompt,
         parse_fn=_parse,
-        output_cols=[args.topic_col],
-        skip_if_already_filled=args.topic_col,  # resume
+        output_cols=[args.sentiment_col],
+        skip_if_already_filled=args.sentiment_col,  # resume-safe
     )
 
     job_id = os.environ.get("SLURM_JOB_ID") or args.job_id or "nojobid"

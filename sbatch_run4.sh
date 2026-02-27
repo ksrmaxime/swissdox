@@ -39,7 +39,7 @@ python scripts/run4_pipeline.py \
   --trust_remote_code \
   --text_col sentence \
   --swiss_related_col SWISS_RELATED \
-  --topic_col POPULISM \
+  --populism_col POPULISM \
   --batch_size 50 \
   --max_new_tokens 160 \
   --temperature 0.0

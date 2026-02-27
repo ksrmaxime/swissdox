@@ -39,7 +39,7 @@ python scripts/run3_pipeline.py \
   --trust_remote_code \
   --text_col sentence \
   --swiss_related_col SWISS_RELATED \
-  --topic_col SENTIMENT \
+  --sentiment_col SENTIMENT \
   --batch_size 50 \
   --max_new_tokens 160 \
   --temperature 0.0
