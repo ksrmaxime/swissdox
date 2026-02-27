@@ -31,7 +31,7 @@ echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<unset>}"
 echo "DATE=$(date -Is)"
 nvidia-smi -L || true
 
-python scripts/run1_pipeline.py \
+python scripts/run2_pipeline.py \
   --input  "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/swissdox_sentences_with_s.parquet" \
   --output_base "$OUTBASE" \
   --model_path /reference/LLM/swiss-ai/Apertus-8B-Instruct-2509 \
@@ -47,7 +47,7 @@ python scripts/run1_pipeline.py \
 # --- Archive: outputs + prompt/config/sbatch ---
 PRED_CSV="${OUTBASE}_job${SLURM_JOB_ID}.csv"
 
-RUN_DIR="data/output/run1_job${SLURM_JOB_ID}"
+RUN_DIR="data/output/run2_job${SLURM_JOB_ID}"
 mkdir -p "$RUN_DIR"
 
 cp "$PRED_CSV" "$RUN_DIR/" || true
