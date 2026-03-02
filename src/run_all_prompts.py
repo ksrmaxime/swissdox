@@ -41,42 +41,37 @@ Return ONLY this strict JSON (no extra keys, no explanations, no markdown):
   "stance": "CRITICISM|PRAISE|NEUTRAL",
   "dept": "DFAE|DFI|DFJP|DDPS|DFF|DEFR|DETEC|null",
   "topic": "<one of the allowed topic strings>|null",
-  "p": 1|0|-1|null
+  "populism": 1|0|-1|null
 }}
 
 Rules:
 
-A) non_swiss (mentions another country/context than Switzerland: YES/NO)
+A) non_swiss (does the sentence mentions another country/context than Switzerland ? YES/NO)
 - YES only if the sentence is clearly about a non-Swiss country/context (e.g., USA, France, EU institutions) AND has no Swiss anchor.
-- NO if Switzerland is explicitly mentioned OR clearly implied by Swiss-specific context.
-Swiss anchor cues (=> non_swiss="NO"):
-- words: Schweiz, schweizerisch, Schweizer, Eidgenossenschaft, Bund, Bundesrat, Parlament, Nationalrat, Ständerat
-- places: Kanton, Gemeinden, Zürich, Bern, Genf, Basel, Lausanne, Tessin, Wallis, etc.
-- institutions/acronyms: SBB/CFF/FFS, SRF/RTS/SSR, SNB, BAG/OFSP, SECO, SEM, Fedpol, ASTRA/OFROU, BAZL, UVEK/DETEC
-- Swiss politics: SVP/UDC, SP/PS, FDP/PLR, Die Mitte/Centre, Grüne/Verts, Initiative, Referendum, Abstimmung/Votation
-- currency: CHF
+- NO otherwise.
 Tie-break: if uncertain, return non_swiss="NO" (prefer recall).
 
-B) stance (about public administration/government action in tone)
+B) stance (Is the sentence a criticism, praise, or a neutral statement ? CRITICISM/PRAISE/NEUTRAL)
 - CRITICISM: complaint, blame, demand, accusation, negative judgement (explicit or clearly implied).
 - PRAISE: compliment, approval, success framing, gratitude, positive judgement.
 - NEUTRAL: descriptive/factual, no clear evaluative tone, or unclear.
 Tie-break: if uncertain, choose NEUTRAL.
 
-C) dept vs topic (conditional)
-- If stance is CRITICISM or PRAISE:
+C) dept vs topic
+- If stance is CRITICISM or PRAISE (Which departement is being criticized or praised ? DFAE/DFI/DFJP/DDPS/DFF/DEFR/DETEC/NONE)
   - dept MUST be exactly one of: DFAE, DFI, DFJP, DDPS, DFF, DEFR, DETEC.
+  - dept is NONE only if no departement is mentioned or clearly implied.
   - topic MUST be null.
-- If stance is NEUTRAL:
+- If stance is NEUTRAL (Which topic is being neutrally described ? Foreign Affairs/Culture/Health/Social/Justice/Migration/Defence/Sport/Finance/Economy/Education/Research/Environment/Transports/Energy/Communication/Other)
   - topic MUST be exactly one of the allowed topics (spelling must match).
   - dept MUST be null.
 
-D) p (populism) ONLY for CRITICISM
+D) populism
 Only if stance="CRITICISM":
 -  1 = Clearly populist: explicit people vs elite framing; delegitimizing institutions as corrupt/illegitimate; scapegoating an out-group as enemy of "the people".
 -  0 = Somewhat populist: hints of anti-elite / anti-system rhetoric but not fully explicit.
 - -1 = Not populist.
-If stance is not CRITICISM: p MUST be null.
+If stance is not CRITICISM: populism MUST be null.
 Tie-break: if uncertain between 0 and -1, choose -1.
 
 Allowed topics (topic):

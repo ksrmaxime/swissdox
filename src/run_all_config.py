@@ -17,5 +17,4 @@ def build_sentences_to_send_mask(
         raise KeyError(f"Missing text column: {text_col}")
 
     s = df[text_col]
-    mask = s.notna() & (s.astype(str).str.strip() != "")
-    return mask
+    return s.notna() & (s.astype(str).str.strip() != "")
