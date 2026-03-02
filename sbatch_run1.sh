@@ -38,7 +38,7 @@ python scripts/run1_pipeline.py \
   --dtype bf16 \
   --trust_remote_code \
   --text_col sentence \
-  --decision_col SWISS_RELATED \
+  --decision_col is_critic \
   --batch_size 50 \
   --max_new_tokens 160 \
   --temperature 0.0

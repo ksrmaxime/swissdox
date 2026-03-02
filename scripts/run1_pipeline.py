@@ -28,12 +28,12 @@ def parse_yes_no(raw: str) -> str | pd._libs.missing.NAType:
     s = str(raw).strip().upper()
 
     # Common accidental prefixes/suffixes => find YES/NO token
-    matches = re.findall(r"\b(YES|NO)\b", s)
+    matches = re.findall(r"\b(CRITIC|CONGRATULATION|NEUTRAL)\b", s)
     if not matches:
         return pd.NA
 
     tok = matches[-1]
-    if tok not in ("YES", "NO"):
+    if tok not in ("CRITIC", "CONGRATULATION", "NEUTRAL"):
         return pd.NA
     return tok
 
