@@ -42,8 +42,8 @@ python scripts/run_all_pipeline.py \
   --topic_col TOPIC \
   --sentiment_col SENTIMENT \
   --populism_col POPULISM \
-  --batch_size 50 \
-  --max_new_tokens 300 \
+  --batch_size 40 \
+  --max_new_tokens 100 \
   --temperature 0.0
 
 # --- Archive: outputs + prompt/config/sbatch ---
