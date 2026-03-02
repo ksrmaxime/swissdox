@@ -18,6 +18,9 @@ import run_all_prompts as run_all_prompts
 
 
 _ALLOWED_TOPICS = set(run_all_prompts.TOPICS)
+_ALLOWED_STANCES = set(run_all_prompts.STANCES)
+_ALLOWED_DEPTS = set(run_all_prompts.DEPARTMENTS)
+
 
 def _extract_json_object(raw: str) -> dict | None:
     """
@@ -63,10 +66,47 @@ def _norm_topic(x) -> str | pd._libs.missing.NAType:
     s = str(x).strip().strip('"').strip("'").strip()
     if s in _ALLOWED_TOPICS:
         return s
-    # tolerant: search any allowed topic phrase
     for t in sorted(_ALLOWED_TOPICS, key=len, reverse=True):
         if re.search(rf"\b{re.escape(t)}\b", s):
             return t
+    return pd.NA
+
+
+def _norm_stance(x) -> str | pd._libs.missing.NAType:
+    if x is None:
+        return pd.NA
+    s = str(x).strip().upper()
+
+    # accept small variants
+    replacements = {
+        "CRITIQUE": "CRITICISM",
+        "CRITIC": "CRITICISM",
+        "NEGATIVE": "CRITICISM",
+        "PRAISE": "PRAISE",
+        "POSITIVE": "PRAISE",
+        "NEUTRE": "NEUTRAL",
+        "NEUTRAL": "NEUTRAL",
+    }
+    if s in replacements:
+        s = replacements[s]
+
+    # try to find any allowed token in noisy output
+    for st in ("CRITICISM", "PRAISE", "NEUTRAL"):
+        if re.search(rf"\b{st}\b", s):
+            return st
+
+    return pd.NA
+
+
+def _norm_dept(x) -> str | pd._libs.missing.NAType:
+    if x is None:
+        return pd.NA
+    s = str(x).strip().upper().replace(".", "").replace(" ", "")
+    if s in _ALLOWED_DEPTS:
+        return s
+    for d in sorted(_ALLOWED_DEPTS, key=len, reverse=True):
+        if re.search(rf"\b{re.escape(d)}\b", s):
+            return d
     return pd.NA
 
 
@@ -74,7 +114,6 @@ def _norm_int_101(x) -> int | pd._libs.missing.NAType:
     if x is None:
         return pd.NA
     s = str(x).strip()
-    # accept int-like, or noisy text containing -1/0/1
     m = re.findall(r"(?<!\d)(-1|0|1)(?!\d)", s)
     if not m:
         return pd.NA
@@ -94,22 +133,23 @@ def main() -> int:
 
     ap.add_argument("--text_col", default="sentence")
 
-    # output columns
-    ap.add_argument("--swiss_col", default="SWISS_RELATED")
+    # output columns (new schema)
+    ap.add_argument("--non_swiss_col", default="NON_SWISS")
+    ap.add_argument("--stance_col", default="STANCE")
+    ap.add_argument("--dept_col", default="DEPARTMENT")
     ap.add_argument("--topic_col", default="TOPIC")
-    ap.add_argument("--sentiment_col", default="SENTIMENT")
     ap.add_argument("--populism_col", default="POPULISM")
 
     # behavior knobs
     ap.add_argument(
-        "--only_fill_if_swiss_yes",
+        "--only_fill_if_non_swiss_no",
         action="store_true",
-        help="If set: when swiss=NO, set topic/sentiment/populism to NA (matches your 4-run logic).",
+        help="If set: when non_swiss=YES, set stance/dept/topic/populism to NA (short-circuit non-swiss rows).",
     )
 
     ap.add_argument("--batch_size", type=int, default=64)
     ap.add_argument("--temperature", type=float, default=0.0)
-    ap.add_argument("--max_new_tokens", type=int, default=96)
+    ap.add_argument("--max_new_tokens", type=int, default=128)
 
     args = ap.parse_args()
 
@@ -122,20 +162,19 @@ def main() -> int:
     send_mask = df[args.text_col].notna() & (df[args.text_col].astype(str).str.strip() != "")
 
     # Ensure output cols exist
-    for c in (args.swiss_col, args.topic_col):
+    for c in (args.non_swiss_col, args.stance_col, args.dept_col, args.topic_col):
         if c not in df.columns:
             df[c] = pd.Series(pd.NA, index=df.index, dtype="string")
         else:
             df[c] = df[c].astype("string")
 
-    for c in (args.sentiment_col, args.populism_col):
-        if c not in df.columns:
-            df[c] = pd.Series(pd.NA, index=df.index, dtype="Int64")
-        else:
-            try:
-                df[c] = df[c].astype("Int64")
-            except Exception:
-                df[c] = pd.Series(df[c], index=df.index, dtype="Int64")
+    if args.populism_col not in df.columns:
+        df[args.populism_col] = pd.Series(pd.NA, index=df.index, dtype="Int64")
+    else:
+        try:
+            df[args.populism_col] = df[args.populism_col].astype("Int64")
+        except Exception:
+            df[args.populism_col] = pd.Series(df[args.populism_col], index=df.index, dtype="Int64")
 
     client = TransformersClient(
         LLMConfig(
@@ -164,35 +203,63 @@ def main() -> int:
         if not isinstance(obj, dict):
             # conservative fallbacks
             return {
-                args.swiss_col: pd.NA,
+                args.non_swiss_col: pd.NA,
+                args.stance_col: "NEUTRAL",
+                args.dept_col: pd.NA,
                 args.topic_col: "Other",
-                args.sentiment_col: 0,
-                args.populism_col: 0,
+                args.populism_col: pd.NA,
             }
 
-        swiss = _norm_yes_no(obj.get("swiss"))
+        non_swiss = _norm_yes_no(obj.get("non_swiss"))
+        stance = _norm_stance(obj.get("stance"))
+        dept = _norm_dept(obj.get("dept"))
         topic = _norm_topic(obj.get("topic"))
-        sp = _norm_int_101(obj.get("sp"))
         p = _norm_int_101(obj.get("p"))
 
         # defaults on parse failure
-        if pd.isna(topic):
-            topic = "Other"
-        if pd.isna(sp):
-            sp = 0
-        if pd.isna(p):
-            p = 0
+        if pd.isna(stance):
+            stance = "NEUTRAL"
 
-        # optional: match your 4-run behavior (2-4 only if swiss YES)
-        if args.only_fill_if_swiss_yes and swiss == "NO":
+        # If requested, short-circuit non-swiss rows
+        if args.only_fill_if_non_swiss_no and non_swiss == "YES":
+            return {
+                args.non_swiss_col: non_swiss,
+                args.stance_col: pd.NA,
+                args.dept_col: pd.NA,
+                args.topic_col: pd.NA,
+                args.populism_col: pd.NA,
+            }
+
+        # Apply schema logic
+        # - NEUTRAL => topic required, dept NA, populism NA
+        # - PRAISE  => dept required, topic NA, populism NA
+        # - CRITICISM => dept required, populism required, topic NA
+        if stance == "NEUTRAL":
+            if pd.isna(topic):
+                topic = "Other"
+            dept = pd.NA
+            p = pd.NA
+        elif stance == "PRAISE":
             topic = pd.NA
-            sp = pd.NA
+            p = pd.NA
+        elif stance == "CRITICISM":
+            topic = pd.NA
+            if pd.isna(p):
+                # If model misses p, default to -1 (not populist) rather than NA
+                p = -1
+        else:
+            # Should not happen, but keep safe
+            stance = "NEUTRAL"
+            if pd.isna(topic):
+                topic = "Other"
+            dept = pd.NA
             p = pd.NA
 
         return {
-            args.swiss_col: swiss,
+            args.non_swiss_col: non_swiss,
+            args.stance_col: stance,
+            args.dept_col: dept,
             args.topic_col: topic,
-            args.sentiment_col: sp,
             args.populism_col: p,
         }
 
@@ -204,9 +271,9 @@ def main() -> int:
         select_mask_fn=_select_mask,
         build_prompt_fn=_build_prompt,
         parse_fn=_parse,
-        output_cols=[args.swiss_col, args.topic_col, args.sentiment_col, args.populism_col],
-        # resume-safe: skip only if ALL 4 already filled (simple approach: pick one “last” col)
-        skip_if_already_filled=args.populism_col,
+        output_cols=[args.non_swiss_col, args.stance_col, args.dept_col, args.topic_col, args.populism_col],
+        # resume-safe: stance is always filled for processed rows under normal parsing
+        skip_if_already_filled=args.stance_col,
     )
 
     job_id = os.environ.get("SLURM_JOB_ID") or args.job_id or "nojobid"

@@ -23,73 +23,66 @@ TOPICS = [
     "Other",
 ]
 
+STANCES = ["CRITICISM", "PRAISE", "NEUTRAL"]
+
+DEPARTMENTS = ["DFAE", "DFI", "DFJP", "DDPS", "DFF", "DEFR", "DETEC"]
+
 SYSTEM_PROMPT = (
     "You are a STRICT text classification system.\n"
     "You must follow the requested output format exactly.\n"
     "Return ONLY valid JSON and nothing else.\n"
 )
 
-USER_TEMPLATE = """You will classify ONE sentence on FOUR dimensions.
+USER_TEMPLATE = """You will classify ONE sentence with this schema.
 
 Return ONLY this strict JSON (no extra keys, no explanations, no markdown):
 {{
-  "swiss": "YES|NO",
-  "topic": "<one of the allowed topic strings>",
-  "sp": 1|0|-1,
-  "p": 1|0|-1
+  "non_swiss": "YES|NO",
+  "stance": "CRITICISM|PRAISE|NEUTRAL",
+  "dept": "DFAE|DFI|DFJP|DDPS|DFF|DEFR|DETEC|null",
+  "topic": "<one of the allowed topic strings>|null",
+  "p": 1|0|-1|null
 }}
 
-A) swiss (related to Switzerland: YES/NO)
-- YES if Switzerland is explicitly mentioned OR clearly implied by Swiss-specific context.
-- NO only if clearly about other countries/contexts with no Swiss anchor.
-Strong Swiss cues (=> YES):
+Rules:
+
+A) non_swiss (mentions another country/context than Switzerland: YES/NO)
+- YES only if the sentence is clearly about a non-Swiss country/context (e.g., USA, France, EU institutions) AND has no Swiss anchor.
+- NO if Switzerland is explicitly mentioned OR clearly implied by Swiss-specific context.
+Swiss anchor cues (=> non_swiss="NO"):
 - words: Schweiz, schweizerisch, Schweizer, Eidgenossenschaft, Bund, Bundesrat, Parlament, Nationalrat, Ständerat
 - places: Kanton, Gemeinden, Zürich, Bern, Genf, Basel, Lausanne, Tessin, Wallis, etc.
 - institutions/acronyms: SBB/CFF/FFS, SRF/RTS/SSR, SNB, BAG/OFSP, SECO, SEM, Fedpol, ASTRA/OFROU, BAZL, UVEK/DETEC
 - Swiss politics: SVP/UDC, SP/PS, FDP/PLR, Die Mitte/Centre, Grüne/Verts, Initiative, Referendum, Abstimmung/Votation
 - currency: CHF
-Tie-break: if uncertain, swiss="YES" (prefer recall).
+Tie-break: if uncertain, return non_swiss="NO" (prefer recall).
 
-B) topic (single label; spelling must match exactly)
-Choose EXACTLY ONE topic from:
+B) stance (about public administration/government action in tone)
+- CRITICISM: complaint, blame, demand, accusation, negative judgement (explicit or clearly implied).
+- PRAISE: compliment, approval, success framing, gratitude, positive judgement.
+- NEUTRAL: descriptive/factual, no clear evaluative tone, or unclear.
+Tie-break: if uncertain, choose NEUTRAL.
+
+C) dept vs topic (conditional)
+- If stance is CRITICISM or PRAISE:
+  - dept MUST be exactly one of: DFAE, DFI, DFJP, DDPS, DFF, DEFR, DETEC.
+  - topic MUST be null.
+- If stance is NEUTRAL:
+  - topic MUST be exactly one of the allowed topics (spelling must match).
+  - dept MUST be null.
+
+D) p (populism) ONLY for CRITICISM
+Only if stance="CRITICISM":
+-  1 = Clearly populist: explicit people vs elite framing; delegitimizing institutions as corrupt/illegitimate; scapegoating an out-group as enemy of "the people".
+-  0 = Somewhat populist: hints of anti-elite / anti-system rhetoric but not fully explicit.
+- -1 = Not populist.
+If stance is not CRITICISM: p MUST be null.
+Tie-break: if uncertain between 0 and -1, choose -1.
+
+Allowed topics (topic):
 - "Foreign Affairs" / "Culture" / "Health" / "Social" / "Justice" / "Migration" / "Defence" / "Sport"
 - "Finance" / "Economy" / "Education" / "Research" / "Environment" / "Transports" / "Energy" / "Communication" / "Other"
-Guidance:
-- Foreign Affairs: international trade, cooperation, representation, diplomacy.
-- Culture: culture, art, music, museums.
-- Health: health, doctors, hospitals.
-- Social: social affairs, elderly people, pensions, aid.
-- Justice: law, courts, police, justice system.
-- Migration: asylum, migration, immigration, foreigners, work permits.
-- Defence: defence, army, civil protection.
-- Sport: sport, clubs, promotion of sport.
-- Finance: budget, taxation.
-- Economy: economy, business, money, banks, trade, markets.
-- Education: schools, university, high school, education, teachers.
-- Research: research, innovation, science, labs, technology.
-- Environment: ecology, climate change, nature protection.
-- Transports: roads, trains, cars, planes, mobility.
-- Energy: energy consumption, nuclear energy, electricity, oil, coal.
-- Communication: TV, radio, internet networks, antennas.
 If unsure, choose "Other".
-
-C) sp (sentiment toward public administration: 1 / 0 / -1)
-Assess the sentiment toward PUBLIC ADMINISTRATION or its actions.
-Public administration = administrative bodies/agencies/offices, civil servants, bureaucracy, administrative procedures.
-NOT public administration = parties/elected politicians in general, unless the sentence explicitly evaluates administrative functioning.
--  1 = positive (supportive/appreciative of public administration or its actions)
-- -1 = negative (criticism/blame/dissatisfaction toward public administration or its actions)
--  0 = neutral (descriptive, factual, vague, or no clear evaluation of public administration)
-If uncertain, assign 0.
-
-D) p (populism: 1 / 0 / -1)
--  1 = Populist: clear populist rhetoric such as:
-  - explicit "the people" vs "the elite/establishment" framing, OR
-  - anti-institution legitimacy attacks (courts, administration, "the system") portrayed as corrupt/illegitimate, OR
-  - scapegoating an out-group framed as an enemy of "the people".
-- -1 = Not Populist: no populist rhetoric.
--  0 = Somehow Populist: could be populist but not clearly people-vs-elite.
-If uncertain between 0 and -1, assign -1.
 
 Sentence:
 {sentence}

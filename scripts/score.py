@@ -26,7 +26,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pred", required=True, help="LLM output file (csv/parquet)")
     ap.add_argument("--gold", required=True, help="Human-coded reference (csv/parquet)")
-    ap.add_argument("--id_col", required=False, help="Join key (e.g. row_uid, sentence_id)")
+    ap.add_argument("--id_col", required=True, help="Join key (e.g. row_uid, sentence_id)")
     ap.add_argument("--cols", required=True, help="Comma-separated columns to compare (e.g. RELEVANT_ART,t,sp,p)")
     ap.add_argument("--keep_na", action="store_true", help="If set, NA pairs are kept (otherwise ignored).")
     ap.add_argument("--use_row_order", action="store_true", help="Compare using row order (creates an internal row_id).")

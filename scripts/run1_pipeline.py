@@ -50,7 +50,7 @@ def main() -> int:
     ap.add_argument("--trust_remote_code", action="store_true")
 
     ap.add_argument("--text_col", default="sentence")
-    ap.add_argument("--decision_col", default="SWISS_RELATED")
+    ap.add_argument("--decision_col", default="is_critic")  # will be created if doesn't exist
 
     ap.add_argument("--batch_size", type=int, default=64)
     ap.add_argument("--temperature", type=float, default=0.0)

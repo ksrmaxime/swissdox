@@ -38,9 +38,10 @@ python scripts/run_all_pipeline.py \
   --dtype bf16 \
   --trust_remote_code \
   --text_col sentence \
-  --swiss_col SWISS_RELATED \
+  --non_swiss_col NON_SWISS \
+  --stance_col STANCE \
+  --dept_col DEPARTMENT \
   --topic_col TOPIC \
-  --sentiment_col SENTIMENT \
   --populism_col POPULISM \
   --batch_size 20 \
   --max_new_tokens 50 \
