@@ -15,16 +15,15 @@ from src.client_src import TransformersClient, LLMConfig
 from src.runner_src import run_llm_dataframe, RunConfig
 
 import run_all_prompts as run_all_prompts
+from run_all_config import build_sentences_to_send_mask
 
 
 _ALLOWED_TOPICS = set(run_all_prompts.TOPICS)
 _ALLOWED_STANCES = set(run_all_prompts.STANCES)
-# dept can also be NONE in your corrected prompt
 _ALLOWED_DEPTS = set(run_all_prompts.DEPARTMENTS) | {"NONE"}
 
 
 def _extract_json_object(raw: str) -> dict | None:
-    """Extract first JSON object from raw text (tolerant)."""
     if raw is None:
         return None
     s = str(raw).strip()
@@ -62,7 +61,6 @@ def _norm_topic(x) -> str | pd._libs.missing.NAType:
     s = str(x).strip().strip('"').strip("'").strip()
     if s in _ALLOWED_TOPICS:
         return s
-    # try to recover from noisy outputs by matching any known topic token
     for t in sorted(_ALLOWED_TOPICS, key=len, reverse=True):
         if re.search(rf"\b{re.escape(t)}\b", s):
             return t
@@ -73,8 +71,6 @@ def _norm_stance(x) -> str | pd._libs.missing.NAType:
     if x is None:
         return pd.NA
     s = str(x).strip().upper()
-
-    # accept small variants
     replacements = {
         "CRITIQUE": "CRITICISM",
         "CRITIC": "CRITICISM",
@@ -83,7 +79,6 @@ def _norm_stance(x) -> str | pd._libs.missing.NAType:
         "NEUTRE": "NEUTRAL",
     }
     s = replacements.get(s, s)
-
     for st in ("CRITICISM", "PRAISE", "NEUTRAL"):
         if re.search(rf"\b{st}\b", s):
             return st
@@ -91,19 +86,13 @@ def _norm_stance(x) -> str | pd._libs.missing.NAType:
 
 
 def _norm_dept_or_none(x) -> str | pd._libs.missing.NAType:
-    """
-    Normalize dept to one of DFAE/DFI/DFJP/DDPS/DFF/DEFR/DETEC/NONE.
-    Returns NA if nothing usable.
-    """
     if x is None:
         return pd.NA
     s = str(x).strip().upper().replace(".", "").replace(" ", "")
-    # treat JSON null-like strings
     if s in {"NULL", "NONE", "N/A", "NA"}:
         s = "NONE"
     if s in _ALLOWED_DEPTS:
         return s
-    # try to find any allowed token in a noisy string
     for d in sorted(_ALLOWED_DEPTS, key=len, reverse=True):
         if re.search(rf"\b{re.escape(d)}\b", s):
             return d
@@ -140,6 +129,13 @@ def main() -> int:
     ap.add_argument("--topic_col", default="TOPIC")
     ap.add_argument("--populism_col", default="POPULISM")
 
+    # selection controls (argparse, not env)
+    ap.add_argument("--max_rows", type=int, default=None, help="Send only first N eligible rows (after filters).")
+    ap.add_argument("--sample_n", type=int, default=None, help="Randomly sample N eligible rows (after filters).")
+    ap.add_argument("--seed", type=int, default=0, help="Seed for --sample_n.")
+    ap.add_argument("--row_uid_min", type=int, default=None, help="Optional lower bound for row_uid (inclusive).")
+    ap.add_argument("--row_uid_max", type=int, default=None, help="Optional upper bound for row_uid (inclusive).")
+
     # behavior knobs
     ap.add_argument(
         "--only_fill_if_non_swiss_no",
@@ -158,8 +154,16 @@ def main() -> int:
     if args.text_col not in df.columns:
         raise KeyError(f"Missing text column: {args.text_col}")
 
-    # send all non-empty sentences
-    send_mask = df[args.text_col].notna() & (df[args.text_col].astype(str).str.strip() != "")
+    # ✅ now driven by config + argparse parameters
+    send_mask = build_sentences_to_send_mask(
+        df,
+        text_col=args.text_col,
+        max_rows=args.max_rows,
+        sample_n=args.sample_n,
+        seed=args.seed,
+        row_uid_min=args.row_uid_min,
+        row_uid_max=args.row_uid_max,
+    )
 
     # Ensure output cols exist
     for c in (args.non_swiss_col, args.stance_col, args.dept_col, args.topic_col):
@@ -192,7 +196,7 @@ def main() -> int:
         max_new_tokens=args.max_new_tokens,
     )
 
-    def _select_mask(df_: pd.DataFrame) -> pd.Series:
+    def _select_mask(_: pd.DataFrame) -> pd.Series:
         return send_mask
 
     def _build_prompt(row: pd.Series, text_col: str) -> str:
@@ -201,7 +205,6 @@ def main() -> int:
     def _parse(raw: str) -> dict:
         obj = _extract_json_object(raw)
         if not isinstance(obj, dict):
-            # conservative fallbacks
             return {
                 args.non_swiss_col: pd.NA,
                 args.stance_col: "NEUTRAL",
@@ -216,11 +219,9 @@ def main() -> int:
         topic = _norm_topic(obj.get("topic"))
         populism = _norm_int_101(obj.get("populism"))
 
-        # default stance if missing/unparseable
         if pd.isna(stance):
             stance = "NEUTRAL"
 
-        # Optional short-circuit
         if args.only_fill_if_non_swiss_no and non_swiss == "YES":
             return {
                 args.non_swiss_col: non_swiss,
@@ -230,10 +231,6 @@ def main() -> int:
                 args.populism_col: pd.NA,
             }
 
-        # Apply corrected schema logic (aligned with prompt):
-        # - NEUTRAL => topic required, dept null, populism null
-        # - PRAISE  => dept required OR NONE, topic null, populism null
-        # - CRITICISM => dept required OR NONE, populism required, topic null
         if stance == "NEUTRAL":
             if pd.isna(topic):
                 topic = "Other"
@@ -251,11 +248,9 @@ def main() -> int:
             if pd.isna(dept):
                 dept = "NONE"
             if pd.isna(populism):
-                # If model misses populism, default to -1 (not populist) rather than NA
                 populism = -1
 
         else:
-            # safety fallback
             stance = "NEUTRAL"
             if pd.isna(topic):
                 topic = "Other"
@@ -279,8 +274,7 @@ def main() -> int:
         build_prompt_fn=_build_prompt,
         parse_fn=_parse,
         output_cols=[args.non_swiss_col, args.stance_col, args.dept_col, args.topic_col, args.populism_col],
-        # resume-safe: stance is filled for processed rows under normal parsing
-        skip_if_already_filled=args.stance_col,
+        skip_if_already_filled=args.stance_col,  # resume
     )
 
     job_id = os.environ.get("SLURM_JOB_ID") or args.job_id or "nojobid"
@@ -292,7 +286,10 @@ def main() -> int:
     out.to_parquet(parquet_path, index=False)
     out.to_csv(csv_path, index=False)
 
-    print(f"Saved: {parquet_path} and {csv_path} | Selected: {int(send_mask.sum()):,}")
+    print(
+        f"Saved: {parquet_path} and {csv_path} | "
+        f"Eligible selected: {int(send_mask.sum()):,} / {len(df):,}"
+    )
     return 0
 
 
