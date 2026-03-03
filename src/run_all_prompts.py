@@ -51,18 +51,17 @@ A) non_swiss (does the sentence mentions another country/context than Switzerlan
 - NO otherwise.
 Tie-break: if uncertain, return non_swiss="NO" (prefer recall).
 
-B) stance (Is the sentence a criticism, praise, or a neutral statement ? CRITICISM/PRAISE/NEUTRAL)
+B) stance (about public administration/government action in tone)
 - CRITICISM: complaint, blame, demand, accusation, negative judgement (explicit or clearly implied).
 - PRAISE: compliment, approval, success framing, gratitude, positive judgement.
 - NEUTRAL: descriptive/factual, no clear evaluative tone, or unclear.
 Tie-break: if uncertain, choose NEUTRAL.
 
-C) dept vs topic
-- If stance is CRITICISM or PRAISE (Which departement is being criticized or praised ? DFAE/DFI/DFJP/DDPS/DFF/DEFR/DETEC/NONE)
+C) dept vs topic (conditional)
+- If stance is CRITICISM or PRAISE:
   - dept MUST be exactly one of: DFAE, DFI, DFJP, DDPS, DFF, DEFR, DETEC.
-  - dept is NONE only if no departement is mentioned or clearly implied.
   - topic MUST be null.
-- If stance is NEUTRAL (Which topic is being neutrally described ? Foreign Affairs/Culture/Health/Social/Justice/Migration/Defence/Sport/Finance/Economy/Education/Research/Environment/Transports/Energy/Communication/Other)
+- If stance is NEUTRAL:
   - topic MUST be exactly one of the allowed topics (spelling must match).
   - dept MUST be null.
 
