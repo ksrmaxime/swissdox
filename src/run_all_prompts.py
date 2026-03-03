@@ -25,7 +25,7 @@ TOPICS = [
 
 STANCES = ["CRITICISM", "PRAISE", "NEUTRAL"]
 
-DEPARTMENTS = ["DFAE", "DFI", "DFJP", "DDPS", "DFF", "DEFR", "DETEC"]
+DEPARTMENTS = ["DFAE/EDA", "DFI/EDI", "DFJP/EJPD", "DDPS/VBS", "DFF/EFD", "DEFR/WBF", "DETEC/UVEK"]
 
 SYSTEM_PROMPT = (
     "You are a STRICT text classification system.\n"
@@ -39,9 +39,9 @@ Return ONLY this strict JSON (no extra keys, no explanations, no markdown):
 {{
   "non_swiss": "YES|NO",
   "stance": "CRITICISM|PRAISE|NEUTRAL",
-  "dept": "DFAE|DFI|DFJP|DDPS|DFF|DEFR|DETEC|null",
+  "dept": "DFAE/EDA|DFI/EDI|DFJP/EJPD|DDPS/VBS|DFF/EFD|DEFR/WBF|DETEC/UVEK|null",
   "topic": "<one of the allowed topic strings>|null",
-  "populism": 1|0|-1|null
+  "populism": 1|0|-1
 }}
 
 Rules:
@@ -59,7 +59,7 @@ Tie-break: if uncertain, choose NEUTRAL.
 
 C) dept vs topic (conditional)
 - If stance is CRITICISM or PRAISE:
-  - dept MUST be exactly one of: DFAE, DFI, DFJP, DDPS, DFF, DEFR, DETEC.
+  - dept MUST be exactly one of: DFAE/EDA, DFI/EDI, DFJP/EJPD, DDPS/VBS, DFF/EFD, DEFR/WBF, DETEC/UVEK.
   - topic MUST be null.
 - If stance is NEUTRAL:
   - topic MUST be exactly one of the allowed topics (spelling must match).
