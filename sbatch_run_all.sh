@@ -52,7 +52,7 @@ python scripts/run_all_pipeline.py \
 PRED_CSV="${OUTBASE}_job${SLURM_JOB_ID}.csv"
 
 # ton fichier "gold" (humain) ici:
-GOLD_CSV="data/external/swissdox_sentences_with_all_job_GOLD.csv"
+GOLD_CSV="data/swissdox_sentences_with_all_job_GOLD.csv"
 
 # capture du score (ligne: "Similarity: 51.08%")
 SCORE=$(python scripts/score.py \
