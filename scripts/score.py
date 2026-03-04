@@ -37,7 +37,7 @@ def main() -> int:
     gold = read_any(args.gold)
     cols = [c.strip() for c in args.cols.split(",") if c.strip()]
 
-    args.id_col = "__row__"
+    
 
     if args.use_row_order:
         pred = pred.reset_index(drop=True).copy()
