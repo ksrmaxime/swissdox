@@ -51,7 +51,21 @@ python scripts/run_all_pipeline.py \
 # --- Archive: outputs + prompt/config/sbatch ---
 PRED_CSV="${OUTBASE}_job${SLURM_JOB_ID}.csv"
 
-RUN_DIR="data/output/run_all_job${SLURM_JOB_ID}"
+# ton fichier "gold" (humain) ici:
+GOLD_CSV="data/external/swissdox_sentences_with_all_job_GOLD.csv"
+
+# capture du score (ligne: "Similarity: 51.08%")
+SCORE=$(python scripts/score.py \
+  --pred "$PRED_CSV" \
+  --gold "$GOLD_CSV" \
+  --id_col sentence_id \
+  --cols NON_SWISS,STANCE,DEPARTMENT,TOPIC,POPULISM \
+  | awk '/Similarity:/ {gsub(/%/,"",$2); print $2}')
+
+# normaliser pour nom de dossier (51.08 -> 51p08)
+SCORE_TAG=$(printf "%.2f" "$SCORE" | tr '.' 'p')
+
+RUN_DIR="data/output/run_all_${SCORE_TAG}"
 mkdir -p "$RUN_DIR"
 
 cp "$PRED_CSV" "$RUN_DIR/" || true
@@ -59,3 +73,4 @@ cp "src/run_all_prompts.py" "$RUN_DIR/prompts_used.py"
 cp "$0" "$RUN_DIR/sbatch_used.sbatch"
 
 echo "Archived in: $RUN_DIR"
+echo "Score: ${SCORE}%"
