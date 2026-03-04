@@ -43,7 +43,7 @@ python scripts/run_all_pipeline.py \
   --dept_col DEPARTMENT \
   --topic_col TOPIC \
   --populism_col POPULISM \
-  --max_rows 1000 \
+  --max_rows 150 \
   --batch_size 20 \
   --max_new_tokens 50 \
   --temperature 0.0
