@@ -20,7 +20,7 @@ Return ONLY this strict JSON (no extra keys, no markdown):
 Rules:
 
 A) non_swiss
-- YES only if the article is clearly about a non-Swiss country/context (e.g., USA, France, EU institutions) AND has no Swiss anchor.
+- YES only if the article talks only about a non-Swiss country/context without any connection to Switzerland.
 - NO otherwise.
 
 B) justification
