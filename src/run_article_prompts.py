@@ -9,7 +9,7 @@ SYSTEM_PROMPT = (
     "Return ONLY valid JSON and nothing else.\n"
 )
 
-USER_TEMPLATE = """You will classify ONE article with this schema based only on its title and lead (not the full text).
+USER_TEMPLATE = """You will classify ONE article based only on its title and lead (not the full text).
 
 Return ONLY this strict JSON (no extra keys, no explanations, no markdown):
 {{
@@ -19,10 +19,9 @@ Return ONLY this strict JSON (no extra keys, no explanations, no markdown):
 
 Rules:
 
-A) non_swiss (does the article mentions another country/context than Switzerland ? YES/NO)
+A) non_swiss
 - YES only if the article is clearly about a non-Swiss country/context (e.g., USA, France, EU institutions) AND has no Swiss anchor.
 - NO otherwise.
-Tie-break: if uncertain, return non_swiss="NO" (prefer recall).
 
 B) topic (main topic of the article))
   - topic MUST be one general word.
