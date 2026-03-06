@@ -20,34 +20,34 @@ from run_article_config import build_sentences_to_send_mask
 
 def parse_article_json(raw: str) -> dict:
     if raw is None:
-        return {"non_swiss": pd.NA, "topic": pd.NA}
+        return {"non_swiss": pd.NA, "justification": pd.NA}
 
     s = str(raw).strip()
 
     try:
         obj = json.loads(s)
         non_swiss = str(obj.get("non_swiss", "")).strip().upper()
-        topic = str(obj.get("topic", "")).strip().lower()
+        justification = str(obj.get("justification", "")).strip().lower()
 
         if non_swiss not in {"YES", "NO"}:
             non_swiss = pd.NA
-        if topic == "":
-            topic = pd.NA
+        if justification == "":
+            justification = pd.NA
 
-        return {"non_swiss": non_swiss, "topic": topic}
+        return {"non_swiss": non_swiss, "justification": justification}
     except Exception:
         pass
 
     non_swiss_match = re.search(r'"?non_swiss"?\s*:\s*"?(YES|NO)"?', s, flags=re.I)
-    topic_match = re.search(r'"?topic"?\s*:\s*"([^"\n\r,}]+)"?', s, flags=re.I)
+    justification_match = re.search(r'"?justification"?\s*:\s*"([^"\n\r,}]+)"?', s, flags=re.I)
 
     non_swiss = non_swiss_match.group(1).upper() if non_swiss_match else pd.NA
-    topic = topic_match.group(1).strip().lower() if topic_match else pd.NA
+    justification = justification_match.group(1).strip().lower() if justification_match else pd.NA
 
-    if isinstance(topic, str) and topic == "":
-        topic = pd.NA
+    if isinstance(justification, str) and justification == "":
+        justification = pd.NA
 
-    return {"non_swiss": non_swiss, "topic": topic}
+    return {"non_swiss": non_swiss, "justification": justification}
 
 
 def main() -> int:
@@ -74,7 +74,7 @@ def main() -> int:
 
     send_mask = build_sentences_to_send_mask(df, title_col="title", lead_col="lead")
 
-    for col in ["non_swiss", "topic"]:
+    for col in ["non_swiss", "justification"]:
         if col not in df.columns:
             df[col] = pd.Series(pd.NA, index=df.index, dtype="string")
         else:
@@ -113,8 +113,8 @@ def main() -> int:
         select_mask_fn=_select_mask,
         build_prompt_fn=_build_prompt,
         parse_fn=_parse,
-        output_cols=["non_swiss", "topic"],
-        skip_if_already_filled="topic",
+        output_cols=["non_swiss", "justification"],
+        skip_if_already_filled="justification",
     )
 
     job_id = os.environ.get("SLURM_JOB_ID") or args.job_id or "nojobid"

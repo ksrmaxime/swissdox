@@ -11,10 +11,10 @@ SYSTEM_PROMPT = (
 
 USER_TEMPLATE = """You will classify ONE article based only on its title and lead (not the full text).
 
-Return ONLY this strict JSON (no extra keys, no explanations, no markdown):
+Return ONLY this strict JSON (no extra keys, no markdown):
 {{
+  "justification": "",
   "non_swiss": "YES|NO",
-  "topic": "",
 }}
 
 Rules:
@@ -23,8 +23,8 @@ A) non_swiss
 - YES only if the article is clearly about a non-Swiss country/context (e.g., USA, France, EU institutions) AND has no Swiss anchor.
 - NO otherwise.
 
-B) topic (main topic of the article))
-  - topic MUST be one general word.
+B) justification
+  - justification must be a concise explanation of the non_swiss classification, based only on the title and lead.
 
 Title:
 {title}
