@@ -265,25 +265,40 @@ def build_article_leads(df_articles: pd.DataFrame, *, content_col: str = "conten
     if content_col not in df_articles.columns:
         raise ValueError(f"Missing '{content_col}' column")
 
-    out = df_articles.copy()
-
-    if "content_id" in out.columns:
-        out["article_id"] = out["content_id"].astype(str)
-    elif "id" in out.columns:
-        out["article_id"] = out["id"].astype(str)
+    if "content_id" in df_articles.columns:
+        article_id = df_articles["content_id"].astype(str)
+    elif "id" in df_articles.columns:
+        article_id = df_articles["id"].astype(str)
     else:
-        out["article_id"] = out.index.astype(str)
+        article_id = df_articles.index.astype(str)
 
-    out["title"] = out["head"].fillna("").astype(str) if "head" in out.columns else ""
-    out["lead"] = out[content_col].fillna("").astype(str).apply(extract_first_paragraph)
+    title = df_articles["head"].fillna("").astype(str) if "head" in df_articles.columns else ""
+    lead = df_articles[content_col].fillna("").astype(str).apply(extract_first_paragraph)
+    text = df_articles[content_col].fillna("").astype(str)
 
-    # garder aussi le texte complet nettoyé dans une colonne dédiée
-    out["text"] = out[content_col].fillna("").astype(str)
+    out = pd.DataFrame({
+        "article_id": article_id,
+        "title": title,
+        "lead": lead,
+        "text": text,
+    })
 
-    # placer les colonnes principales devant
-    front_cols = ["article_id", "title", "lead", "text"]
-    remaining_cols = [c for c in out.columns if c not in front_cols]
-    out = out[front_cols + remaining_cols]
+    meta_cols = [
+        "pubtime",
+        "medium_code",
+        "medium_name",
+        "rubric",
+        "regional",
+        "doctype",
+        "doctype_description",
+        "language",
+        "char_count",
+        "dateline",
+    ]
+
+    for col in meta_cols:
+        if col in df_articles.columns:
+            out[col] = df_articles[col]
 
     return out
 
