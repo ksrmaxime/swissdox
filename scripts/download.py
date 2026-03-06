@@ -17,12 +17,11 @@ def main() -> None:
     ap.add_argument("--test", action="store_true", help="Swissdox test mode (if supported)")
     args = ap.parse_args()
 
-    # Tu pourras ajuster sources / languages ici ou en CLI plus tard
     languages = ["de", "fr"]
     sources = ["NZZO", "NNTA", "NNHEU", "ZWSO", "TPS", "NZZ", "TA", "ZWAO", "TPSO", "HEU", "ZWAS", "NZZS", "ZWAI"]
 
     query_name = f"BuerokratieVerwaltung_{datetime.now():%Y%m%d_%H%M%S}"
-    comment = "CURNAGL pipeline: query -> clean -> sentence split"
+    comment = "CURNAGL pipeline: query -> clean -> article lead extraction"
     expiration_date = "2026-03-30"
 
     out_paths = run_pipeline(
