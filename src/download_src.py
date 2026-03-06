@@ -205,17 +205,14 @@ def clean_xml_keep_paragraphs(s: str) -> str:
 
     s = html.unescape(s)
 
-    # normaliser certaines balises qui marquent des fins de paragraphe / ligne
     s = re.sub(r"(?i)<br\s*/?>", "\n", s)
     s = re.sub(r"(?i)</p\s*>", "\n\n", s)
     s = re.sub(r"(?i)<p[^>]*>", "", s)
     s = re.sub(r"(?i)</div\s*>", "\n\n", s)
     s = re.sub(r"(?i)<div[^>]*>", "", s)
 
-    # enlever le reste des balises
     s = re.sub(r"<[^>]+>", " ", s)
 
-    # nettoyer chaque ligne sans casser la structure paragraphique
     lines = s.splitlines()
     cleaned_lines = []
     for line in lines:
@@ -262,7 +259,7 @@ def clean_articles_df(df_raw: pd.DataFrame) -> pd.DataFrame:
 
 # -----------------------------
 # Article-level output:
-# one row = one article with title + first paragraph (lead)
+# one row = one article with title + lead + full text
 # -----------------------------
 def build_article_leads(df_articles: pd.DataFrame, *, content_col: str = "content") -> pd.DataFrame:
     if content_col not in df_articles.columns:
@@ -280,12 +277,11 @@ def build_article_leads(df_articles: pd.DataFrame, *, content_col: str = "conten
     out["title"] = out["head"].fillna("").astype(str) if "head" in out.columns else ""
     out["lead"] = out[content_col].fillna("").astype(str).apply(extract_first_paragraph)
 
-    # on retire le content complet pour ne garder que le lead
-    if "content" in out.columns:
-        out = out.drop(columns=["content"])
+    # garder aussi le texte complet nettoyé dans une colonne dédiée
+    out["text"] = out[content_col].fillna("").astype(str)
 
     # placer les colonnes principales devant
-    front_cols = ["article_id", "title", "lead"]
+    front_cols = ["article_id", "title", "lead", "text"]
     remaining_cols = [c for c in out.columns if c not in front_cols]
     out = out[front_cols + remaining_cols]
 
