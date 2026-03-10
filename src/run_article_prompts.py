@@ -5,27 +5,44 @@ import pandas as pd
 
 SYSTEM_PROMPT = (
     "You are a STRICT text classification system.\n"
-    "You must follow the requested output format exactly.\n"
+    "Your task is to detect the rare articles that are entirely unrelated to Switzerland.\n"
     "Return ONLY valid JSON and nothing else.\n"
 )
 
-USER_TEMPLATE = """ Here is an article title and lead from a swiss newspaper.
-You job is to detect when the article talks about a non-swiss related country or context.
-Classify the article as non_swiss YES or NO, and provide a justification for your classification.
+USER_TEMPLATE = """You are given the title and lead of an article from a Swiss newspaper.
 
-YES only if the article talks only about a non-Swiss country/context without any connection to Switzerland.
-NO otherwise.
+Context of the task:
+This dataset has already been prefiltered from Swiss newspapers using Swiss-related and public-affairs keywords.
+Most articles are expected to be related to Switzerland in some way.
+Your job is ONLY to identify the rare false positives: articles that are entirely about a foreign country or foreign context and have no meaningful link to Switzerland.
 
-IMPORTANT: If the article talks about a non-Swiss country/context but also has a connection to Switzerland, then the article is NOT non-Swiss and should be classified as NO.
+Definition of Swiss-related:
+An article IS Swiss-related if it has ANY meaningful connection to Switzerland, including but not limited to:
+- Switzerland as a country
+- Swiss politics, administration, parliament, courts, parties, laws, or public institutions
+- Swiss actors, officials, companies, organizations, experts, or residents
+- events, decisions, debates, or developments affecting Switzerland
+- Swiss reactions to foreign events
+- Swiss participation in international affairs
+- comparisons with Switzerland
+- consequences, implications, or relevance for Switzerland
 
-Justification must be a concise explanation of the non_swiss classification, based only on the title and lead.
+Classification rule:
+- Output "YES" only if the article is clearly and exclusively about a non-Swiss country or foreign context, with NO meaningful connection to Switzerland at all.
+- Output "NO" if there is ANY Swiss connection, even indirect, partial, comparative, diplomatic, economic, political, legal, or contextual.
+- If unsure, output "NO".
 
+Important clarifications:
+- Mentioning a foreign country does NOT make the article non-Swiss.
+- An article about international affairs is still Swiss-related if Switzerland is involved, mentioned, affected, compared, or implicated.
+- An article about a foreign politician, foreign administration, or foreign bureaucracy is still "NO" if the title or lead gives any link to Switzerland.
+- Use only the title and lead. Do not infer facts not present in them.
 
-Return ONLY this strict JSON (no extra keys, no markdown):
-{{
-  "justification": "",
-  "non_swiss": "YES|NO",
-}}
+Return ONLY this strict JSON:
+{
+  "justification": "<concise explanation based only on title and lead>",
+  "non_swiss": "YES" or "NO"
+}
 
 Title:
 {title}
