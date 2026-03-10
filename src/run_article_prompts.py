@@ -9,22 +9,23 @@ SYSTEM_PROMPT = (
     "Return ONLY valid JSON and nothing else.\n"
 )
 
-USER_TEMPLATE = """You will classify ONE article based only on its title and lead (not the full text).
+USER_TEMPLATE = """ Here is an article title and lead from a swiss newspaper.
+You job is to detect when the article talks about a non-swiss related country or context.
+Classify the article as non_swiss YES or NO, and provide a justification for your classification.
+
+YES only if the article talks only about a non-Swiss country/context without any connection to Switzerland.
+NO otherwise.
+
+IMPORTANT: If the article talks about a non-Swiss country/context but also has a connection to Switzerland, then the article is NOT non-Swiss and should be classified as NO.
+
+Justification must be a concise explanation of the non_swiss classification, based only on the title and lead.
+
 
 Return ONLY this strict JSON (no extra keys, no markdown):
 {{
   "justification": "",
   "non_swiss": "YES|NO",
 }}
-
-Rules:
-
-A) non_swiss
-- YES only if the article talks only about a non-Swiss country/context without any connection to Switzerland.
-- NO otherwise.
-
-B) justification
-  - justification must be a concise explanation of the non_swiss classification, based only on the title and lead.
 
 Title:
 {title}
