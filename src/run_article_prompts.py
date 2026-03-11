@@ -39,10 +39,10 @@ Important clarifications:
 - Use only the title and lead. Do not infer facts not present in them.
 
 Return ONLY this strict JSON:
-{
+{{
   "justification": "<concise explanation based only on title and lead>",
-  "non_swiss": "YES" or "NO"
-}
+  "non_swiss": "YES|NO"
+}}
 
 Title:
 {title}
