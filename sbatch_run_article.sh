@@ -62,7 +62,7 @@ SCORE=$(python scripts/score.py \
 # normaliser pour nom de dossier (51.08 -> 51p08)
 SCORE_TAG=$(printf "%.2f" "$SCORE" | tr '.' 'p')
 
-RUN_DIR="data/output/run_all_${SCORE_TAG}"
+RUN_DIR="data/output/run_article_with_s${SCORE_TAG}"
 mkdir -p "$RUN_DIR"
 
 cp "$PRED_CSV" "$RUN_DIR/" || true
