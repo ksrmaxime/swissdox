@@ -56,8 +56,9 @@ SCORE=$(python scripts/score.py \
   --gold "$GOLD_CSV" \
   --use_row_order \
   --cols non_swiss \
+  --col_kinds non_swiss=label \
   --max_rows 300 \
-  | awk '/Similarity:/ {gsub(/%/,"",$2); print $2}')
+  --report_dir "$RUN_DIR/eval")
 
 # normaliser pour nom de dossier (51.08 -> 51p08)
 SCORE_TAG=$(printf "%.2f" "$SCORE" | tr '.' 'p')
