@@ -26,30 +26,31 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pred", required=True, help="LLM output file (csv/parquet)")
     ap.add_argument("--gold", required=True, help="Human-coded reference (csv/parquet)")
-    ap.add_argument("--id_col", required=True, help="Join key (e.g. row_uid, sentence_id)")
-    ap.add_argument("--cols", required=True, help="Comma-separated columns to compare (e.g. RELEVANT_ART,t,sp,p)")
+    ap.add_argument("--id_col", help="Join key (e.g. row_uid, sentence_id)")
+    ap.add_argument("--cols", required=True, help="Comma-separated columns to compare")
     ap.add_argument("--keep_na", action="store_true", help="If set, NA pairs are kept (otherwise ignored).")
-    ap.add_argument("--use_row_order", action="store_true", help="Compare using row order (creates an internal row_id).")
+    ap.add_argument("--use_row_order", action="store_true", help="Compare using row order.")
+    ap.add_argument("--max_rows", type=int, default=300, help="Evaluate only the first N rows from each file.")
 
     args = ap.parse_args()
 
-    pred = read_any(args.pred)
-    gold = read_any(args.gold)
+    pred = read_any(args.pred).head(args.max_rows).reset_index(drop=True)
+    gold = read_any(args.gold).head(args.max_rows).reset_index(drop=True)
     cols = [c.strip() for c in args.cols.split(",") if c.strip()]
 
-    
-
     if args.use_row_order:
-        pred = pred.reset_index(drop=True).copy()
-        gold = gold.reset_index(drop=True).copy()
-
         pred["__row__"] = pred.index.astype(int)
         gold["__row__"] = gold.index.astype(int)
+        id_col = "__row__"
+    else:
+        if not args.id_col:
+            raise ValueError("You must provide --id_col unless --use_row_order is set.")
+        id_col = args.id_col
 
     res = compare_frames(
         pred=pred,
         gold=gold,
-        id_col=args.id_col,
+        id_col=id_col,
         cols=cols,
         drop_na_pairs=(not args.keep_na),
     )

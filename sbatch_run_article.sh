@@ -43,17 +43,31 @@ python scripts/run_article_pipeline.py \
   --max_new_tokens 160 \
   --temperature 0.0
 
-PRED_CSV="${OUTBASE}_job${SLURM_JOB_ID}.csv"
-PRED_PARQUET="${OUTBASE}_job${SLURM_JOB_ID}.parquet"
 
-RUN_DIR="data/output/run_article_job${SLURM_JOB_ID}"
+# --- Archive: outputs + prompt/config/sbatch ---
+PRED_CSV="${OUTBASE}_job${SLURM_JOB_ID}.csv"
+
+# ton fichier "gold" (humain) ici:
+GOLD_CSV="data/swissdox_article_with_s_GOLD.csv"
+
+# capture du score (ligne: "Similarity: 51.08%")
+SCORE=$(python scripts/score.py \
+  --pred "$PRED_CSV" \
+  --gold "$GOLD_CSV" \
+  --use_row_order \
+  --cols non_swiss \
+  --max_rows 300 \
+  | awk '/Similarity:/ {gsub(/%/,"",$2); print $2}')
+
+# normaliser pour nom de dossier (51.08 -> 51p08)
+SCORE_TAG=$(printf "%.2f" "$SCORE" | tr '.' 'p')
+
+RUN_DIR="data/output/run_all_${SCORE_TAG}"
 mkdir -p "$RUN_DIR"
 
 cp "$PRED_CSV" "$RUN_DIR/" || true
-cp "$PRED_PARQUET" "$RUN_DIR/" || true
-cp "src/run_article_prompts.py" "$RUN_DIR/prompts_used.py"
-cp "src/run_article_config.py" "$RUN_DIR/config_used.py"
-cp "scripts/run_article_pipeline.py" "$RUN_DIR/pipeline_used.py"
+cp "src/run_all_prompts.py" "$RUN_DIR/prompts_used.py"
 cp "$0" "$RUN_DIR/sbatch_used.sbatch"
 
 echo "Archived in: $RUN_DIR"
+echo "Score: ${SCORE}%"
