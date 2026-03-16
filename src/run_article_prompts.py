@@ -29,7 +29,7 @@ An article IS Swiss-related if it has ANY meaningful connection to Switzerland, 
 
 Classification rule:
 - Output "YES" only if the article is clearly and exclusively about a non-Swiss country or foreign context, with NO connection to Switzerland at all.
-- Output "NO" if there is ANY Swiss connection, even indirect, partial, comparative, diplomatic, economic, political, legal, or contextual.
+- Output "NO" if there is ANY Swiss connection, even indirect (like mention of a swiss administration), partial, comparative, diplomatic, economic, political, legal, or contextual.
 - If unsure, output "NO".
 
 Important clarifications:
