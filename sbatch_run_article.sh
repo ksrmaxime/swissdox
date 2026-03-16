@@ -46,12 +46,14 @@ python scripts/run_article_pipeline.py \
 
 # --- Archive: outputs + prompt/config/sbatch ---
 PRED_CSV="${OUTBASE}_job${SLURM_JOB_ID}.csv"
-
-# ton fichier "gold" (humain) ici:
 GOLD_CSV="data/swissdox_article_with_s_GOLD.csv"
 
-# capture du score (ligne: "Similarity: 51.08%")
-SCORE=$(python scripts/score.py \
+# temporary run dir first
+RUN_DIR="data/output/run_article_job${SLURM_JOB_ID}"
+mkdir -p "$RUN_DIR"
+
+# run evaluation and capture stdout
+SCORE_LOG=$(python scripts/score.py \
   --pred "$PRED_CSV" \
   --gold "$GOLD_CSV" \
   --use_row_order \
@@ -60,15 +62,36 @@ SCORE=$(python scripts/score.py \
   --max_rows 300 \
   --report_dir "$RUN_DIR/eval")
 
-# normaliser pour nom de dossier (51.08 -> 51p08)
-SCORE_TAG=$(printf "%.2f" "$SCORE" | tr '.' 'p')
+echo "$SCORE_LOG"
 
-RUN_DIR="data/output/run_article_with_s${SCORE_TAG}"
-mkdir -p "$RUN_DIR"
+# extract numeric similarity from stdout
+SCORE=$(echo "$SCORE_LOG" | awk '/^Similarity:/ {gsub(/%/,"",$2); print $2; exit}')
+SCORE=${SCORE:-NA}
 
-cp "$PRED_CSV" "$RUN_DIR/" || true
-cp "src/run_all_prompts.py" "$RUN_DIR/prompts_used.py"
-cp "$0" "$RUN_DIR/sbatch_used.sbatch"
+# optional final renamed folder
+if [ "$SCORE" = "NA" ]; then
+  FINAL_RUN_DIR="data/output/run_article_with_s_no_score_job${SLURM_JOB_ID}"
+else
+  SCORE_TAG=$(printf "%.2f" "$SCORE" | tr '.' 'p')
+  FINAL_RUN_DIR="data/output/run_article_with_s${SCORE_TAG}_job${SLURM_JOB_ID}"
+fi
 
-echo "Archived in: $RUN_DIR"
+mkdir -p "$FINAL_RUN_DIR"
+
+cp "$PRED_CSV" "$FINAL_RUN_DIR/" || true
+cp "scripts/run_article_prompts.py" "$FINAL_RUN_DIR/prompts_used.py" || true
+cp "scripts/run_article_config.py" "$FINAL_RUN_DIR/config_used.py" || true
+cp "scripts/score.py" "$FINAL_RUN_DIR/score_used.py" || true
+cp "score_src.py" "$FINAL_RUN_DIR/score_src_used.py" || true
+cp "$0" "$FINAL_RUN_DIR/sbatch_used.sbatch" || true
+
+# move eval reports too
+if [ -d "$RUN_DIR/eval" ]; then
+  mv "$RUN_DIR/eval" "$FINAL_RUN_DIR/eval"
+fi
+
+# cleanup temp dir if empty
+rmdir "$RUN_DIR" 2>/dev/null || true
+
+echo "Archived in: $FINAL_RUN_DIR"
 echo "Score: ${SCORE}%"
