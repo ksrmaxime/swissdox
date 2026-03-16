@@ -39,9 +39,15 @@ Important clarifications:
 - When there is a swiss administration mentioned in the title or lead, the article is Swiss-related, even if the rest of the article is about a foreign context.
 - Use only the title and lead. Do not infer facts not present in them.
 
+Step-by-step reasoning (follow this order strictly):
+1. List any Swiss connections found in the title and lead (Swiss institutions, officials, companies, political bodies, laws, events, etc.).
+2. If you found at least one Swiss connection in step 1, the answer MUST be "NO".
+3. Only if you found zero Swiss connections in step 1, the answer MAY be "YES".
+4. Your "non_swiss" field MUST match the conclusion from steps 1-3. Never output a "non_swiss" value that contradicts your justification.
+
 Return ONLY this strict JSON:
 {{
-  "justification": "<concise explanation based only on title and lead>",
+  "justification": "<concise explanation: list Swiss connections found, or state none found, then state your conclusion>",
   "non_swiss": "YES|NO"
 }}
 
