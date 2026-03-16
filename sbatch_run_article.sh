@@ -56,7 +56,7 @@ mkdir -p "$RUN_DIR"
 SCORE_LOG=$(python scripts/score.py \
   --pred "$PRED_CSV" \
   --gold "$GOLD_CSV" \
-  --use_row_order \
+  --id_col article_id \
   --cols non_swiss \
   --col_kinds non_swiss=label \
   --max_rows 300 \
@@ -79,10 +79,8 @@ fi
 mkdir -p "$FINAL_RUN_DIR"
 
 cp "$PRED_CSV" "$FINAL_RUN_DIR/" || true
-cp "scripts/run_article_prompts.py" "$FINAL_RUN_DIR/prompts_used.py" || true
-cp "scripts/run_article_config.py" "$FINAL_RUN_DIR/config_used.py" || true
-cp "src/run_article_prompts.py" "$FINAL_RUN_DIR/prompt_used.py" || true
-cp "score_src.py" "$FINAL_RUN_DIR/score_src_used.py" || true
+cp "src/run_article_prompts.py" "$FINAL_RUN_DIR/prompts_used.py" || true
+cp "src/run_article_config.py" "$FINAL_RUN_DIR/config_used.py" || true
 cp "$0" "$FINAL_RUN_DIR/sbatch_used.sbatch" || true
 
 # move eval reports too
