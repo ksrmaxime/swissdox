@@ -81,7 +81,7 @@ mkdir -p "$FINAL_RUN_DIR"
 cp "$PRED_CSV" "$FINAL_RUN_DIR/" || true
 cp "scripts/run_article_prompts.py" "$FINAL_RUN_DIR/prompts_used.py" || true
 cp "scripts/run_article_config.py" "$FINAL_RUN_DIR/config_used.py" || true
-cp "scripts/score.py" "$FINAL_RUN_DIR/score_used.py" || true
+cp "src/run_article_prompts.py" "$FINAL_RUN_DIR/prompt_used.py" || true
 cp "score_src.py" "$FINAL_RUN_DIR/score_src_used.py" || true
 cp "$0" "$FINAL_RUN_DIR/sbatch_used.sbatch" || true
 
