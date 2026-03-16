@@ -36,6 +36,7 @@ Important clarifications:
 - Mentioning a foreign country does NOT make the article non-Swiss.
 - An article about international affairs is still Swiss-related if Switzerland is involved, mentioned, affected, compared, or implicated.
 - An article about a foreign politician, foreign administration, or foreign bureaucracy is still "NO" if the title or lead gives any link to Switzerland.
+- When there is a swiss administration mentioned in the title or lead, the article is Swiss-related, even if the rest of the article is about a foreign context.
 - Use only the title and lead. Do not infer facts not present in them.
 
 Return ONLY this strict JSON:
