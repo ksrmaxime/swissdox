@@ -9,30 +9,47 @@ SYSTEM_PROMPT = (
     "Return ONLY valid JSON and nothing else.\n"
 )
 
-USER_TEMPLATE = """Does this article title and lead contain any reference to Switzerland?
+USER_TEMPLATE = """You are given the title and lead of an article from a Swiss newspaper.
 
-A Swiss reference includes: Switzerland itself, Swiss institutions (e.g. Bundesrat, EDA, SECO, SNB, Parlament, Kantone, Bundesgericht), Swiss officials, Swiss companies, Swiss laws, or any event/decision involving Switzerland — even if the main topic is foreign.
+Context of the task:
+This dataset has already been prefiltered from Swiss newspapers using Swiss-related and public-affairs keywords.
+Most articles are expected to be related to Switzerland in some way.
+Your job is ONLY to identify the rare false positives: articles that are entirely about a foreign country or foreign context and have no meaningful link to Switzerland.
 
-Output "NO" only if you find ZERO Swiss references. If unsure, output "NO".
+Definition of meaningful link to Switzerland:
+An article IS meaningful to Switzerland if it has ANY connection to Switzerland, including but not limited to:
+- Switzerland as a country
+- Swiss politics, administration, parliament, courts, parties, laws, or public institutions
+- Swiss actors, officials, companies, organizations, experts, or residents
+- events, decisions, debates, or developments affecting Switzerland
+- Swiss reactions to foreign events
+- Swiss participation in international affairs
+- comparisons with Switzerland
+- consequences, implications, or relevance for Swiss companies.
 
-Examples:
----
-Title: "EDA hält Palästina-Infos zurück – «zum Schutz des Bundesrates»"
-Lead: "Ein EDA-Gutachten zur Anerkennung Palästinas bleibt seit Juni unter Verschluss."
-{{"non_swiss": "NO", "justification": "EDA and Bundesrat are Swiss federal institutions"}}
----
-Title: "Trump signs sweeping immigration order"
-Lead: "The US president signed an executive order restricting entry from several countries."
-{{"non_swiss": "YES", "justification": "Purely about US politics, no Swiss reference"}}
----
-Title: "Gaza: Hunderte Tote bei israelischen Angriffen"
-Lead: "Bei israelischen Luftangriffen auf Gaza sind laut palästinensischen Behörden über 200 Menschen ums Leben gekommen."
-{{"non_swiss": "YES", "justification": "Purely about the Gaza conflict, no Swiss reference"}}
----
+Classification rule:
+- Output "YES" only if the article doesn't have any meaningful link to Switzerland as described above.
+- Output "NO" if there is ANY meaningful link to Switzerland.
+- If unsure, output "NO".
 
-Now classify:
-Title: {title}
-Lead: {lead}
+Important clarifications:
+- Mentioning a foreign country does NOT make the article non-Swiss.
+- An article about international affairs is still Swiss-related if Switzerland is involved, mentioned, affected, compared, or implicated.
+- An article about a foreign politician, foreign administration, or foreign bureaucracy is still "NO" if the title or lead gives any link to Switzerland.
+- When there is a swiss administration mentioned in the title or lead, the article is Swiss-related, even if the rest of the article is about a foreign context.
+- Use only the title and lead. Do not infer facts not present in them.
+
+Return ONLY this strict JSON:
+{{
+  "justification": "<concise explanation based only on title and lead>",
+  "non_swiss": "YES|NO"
+}}
+
+Title:
+{title}
+
+Lead:
+{lead}
 """
 
 def build_user_prompt(row: pd.Series, text_col: str) -> str:
