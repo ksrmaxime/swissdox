@@ -34,7 +34,7 @@ nvidia-smi -L || true
 python scripts/run_article_pipeline.py \
   --input "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/swissdox_articles_lead.parquet" \
   --output_base "$OUTBASE" \
-  --model_path /reference/LLM/swiss-ai/Apertus-8B-Instruct-2509 \
+  --model_path /work/FAC/FDCA/IDHEAP/mhinterl/parp/models/Qwen3.5-27B-AWQ \
   --dtype bf16 \
   --trust_remote_code \
   --text_col lead \
