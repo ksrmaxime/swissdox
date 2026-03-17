@@ -46,7 +46,8 @@ def main() -> int:
     ap.add_argument("--job_id", default=None)
 
     ap.add_argument("--model_path", required=True)
-    ap.add_argument("--dtype", default="bf16", choices=["bf16", "fp16"])
+    ap.add_argument("--dtype", default="bf16", choices=["bf16", "fp16", "auto"])
+    ap.add_argument("--backend", default="transformers", choices=["vllm", "transformers"])
     ap.add_argument("--trust_remote_code", action="store_true")
 
     ap.add_argument("--text_col", default="sentence")
@@ -73,6 +74,7 @@ def main() -> int:
             model_path=args.model_path,
             dtype=args.dtype,
             trust_remote_code=args.trust_remote_code,
+            backend=args.backend,
         )
     )
 

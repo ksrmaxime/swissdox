@@ -28,6 +28,7 @@ PROMPTS_DIR="${RUN_DIR_ABS}/prompts"
 # ---- MODEL ----
 MODEL_PATH="/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509"
 DTYPE="bf16"
+BACKEND="transformers"
 
 # ---- Common params ----
 TEXT_COL="sentence"
@@ -58,6 +59,7 @@ python scripts/run1_pipeline.py \
   --output_base "$OUTBASE1" \
   --model_path "$MODEL_PATH" \
   --dtype "$DTYPE" \
+  --backend "$BACKEND" \
   --trust_remote_code \
   --text_col "$TEXT_COL" \
   --decision_col SWISS_RELATED \
@@ -77,6 +79,7 @@ python scripts/run2_pipeline.py \
   --output_base "$OUTBASE2" \
   --model_path "$MODEL_PATH" \
   --dtype "$DTYPE" \
+  --backend "$BACKEND" \
   --trust_remote_code \
   --text_col "$TEXT_COL" \
   --swiss_related_col SWISS_RELATED \
@@ -97,6 +100,7 @@ python scripts/run3_pipeline.py \
   --output_base "$OUTBASE3" \
   --model_path "$MODEL_PATH" \
   --dtype "$DTYPE" \
+  --backend "$BACKEND" \
   --trust_remote_code \
   --text_col "$TEXT_COL" \
   --swiss_related_col SWISS_RELATED \
@@ -117,6 +121,7 @@ python scripts/run4_pipeline.py \
   --output_base "$OUTBASE4" \
   --model_path "$MODEL_PATH" \
   --dtype "$DTYPE" \
+  --backend "$BACKEND" \
   --trust_remote_code \
   --text_col "$TEXT_COL" \
   --swiss_related_col SWISS_RELATED \

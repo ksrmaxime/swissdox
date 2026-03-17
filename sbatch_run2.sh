@@ -31,11 +31,16 @@ echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<unset>}"
 echo "DATE=$(date -Is)"
 nvidia-smi -L || true
 
+MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
+DTYPE=bf16
+BACKEND=transformers
+
 python scripts/run2_pipeline.py \
   --input  "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox_sentences_with_s.parquet" \
   --output_base "$OUTBASE" \
-  --model_path /reference/LLM/swiss-ai/Apertus-8B-Instruct-2509 \
-  --dtype bf16 \
+  --model_path "$MODEL_PATH" \
+  --dtype "$DTYPE" \
+  --backend "$BACKEND" \
   --trust_remote_code \
   --text_col sentence \
   --swiss_related_col SWISS_RELATED \

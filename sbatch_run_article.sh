@@ -31,11 +31,16 @@ echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<unset>}"
 echo "DATE=$(date -Is)"
 nvidia-smi -L || true
 
+MODEL_PATH=/work/FAC/FDCA/IDHEAP/mhinterl/parp/models/Qwen3.5-27B-AWQ
+DTYPE=auto
+BACKEND=vllm
+
 python scripts/run_article_pipeline.py \
   --input "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/swissdox_articles_lead.parquet" \
   --output_base "$OUTBASE" \
-  --model_path /work/FAC/FDCA/IDHEAP/mhinterl/parp/models/Qwen3.5-27B-AWQ \
-  --dtype bf16 \
+  --model_path "$MODEL_PATH" \
+  --dtype "$DTYPE" \
+  --backend "$BACKEND" \
   --trust_remote_code \
   --text_col lead \
   --decision_col non_swiss \
