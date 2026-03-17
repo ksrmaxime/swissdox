@@ -14,16 +14,30 @@ USER_TEMPLATE = """You are given the title and lead of an article from a Swiss n
 Context of the task:
 This dataset has already been prefiltered from Swiss newspapers using Swiss-related and public-affairs keywords.
 Most articles are expected to be related to Switzerland in some way.
-Your job is ONLY to identify the rare cases that are entirely about a foreign context and have no link to Switzerland.
+Your job is ONLY to identify the rare false positives: articles that are entirely about a foreign country or foreign context and have no meaningful link to Switzerland.
+
+Definition of Swiss-related:
+An article IS Swiss-related if it has ANY meaningful connection to Switzerland, including but not limited to:
+- Switzerland as a country
+- Swiss politics, administration, parliament, courts, parties, laws, or public institutions
+- Swiss actors, officials, companies, organizations, experts, or residents
+- events, decisions, debates, or developments affecting Switzerland
+- Swiss reactions to foreign events
+- Swiss participation in international affairs
+- comparisons with Switzerland
+- consequences, implications, or relevance for Switzerland
 
 Classification rule:
-- Output "YES" only when you are certain that the article doesn't have any implication, mention, effect, comparison, or link to Switzerland.
-- Output "NO" if there is ANY link to Switzerland.
+- Output "YES" only if the article is clearly and exclusively about a non-Swiss country or foreign context, with NO connection to Switzerland at all.
+- Output "NO" if there is ANY Swiss connection, even indirect (like mention of a swiss administration), partial, comparative, diplomatic, economic, political, legal, or contextual.
 - If unsure, output "NO".
 
 Important clarifications:
-Mentioning a foreign country does NOT make the article non-Swiss. Event the smallest clue like, swiss currancy, companies, people, entity, city name etc... that would related to switzerland are enough to classify the article as "NO".
-link to Switzerland is not limited to "talking about the country", it can be a comparison, an effect, an implication, a mention of swiss entities, people, companies, cities, currency, etc...
+- Mentioning a foreign country does NOT make the article non-Swiss.
+- An article about international affairs is still Swiss-related if Switzerland is involved, mentioned, affected, compared, or implicated.
+- An article about a foreign politician, foreign administration, or foreign bureaucracy is still "NO" if the title or lead gives any link to Switzerland.
+- When there is a swiss administration mentioned in the title or lead, the article is Swiss-related, even if the rest of the article is about a foreign context.
+- Use only the title and lead. Do not infer facts not present in them.
 
 Return ONLY this strict JSON:
 {{
