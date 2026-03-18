@@ -31,9 +31,9 @@ echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<unset>}"
 echo "DATE=$(date -Is)"
 nvidia-smi -L || true
 
-MODEL_PATH=/work/FAC/FDCA/IDHEAP/mhinterl/parp/models/Qwen3.5-27B-AWQ
-DTYPE=auto
-BACKEND=vllm
+MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
+DTYPE=bf16
+BACKEND=transformers
 
 python scripts/run_article_pipeline.py \
   --input "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/swissdox_articles_lead.parquet" \
