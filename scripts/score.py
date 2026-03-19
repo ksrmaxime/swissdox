@@ -73,6 +73,12 @@ def main() -> int:
     ap.add_argument("--list_seps", default="", help="Per-column list separators, e.g. topics=|,targets=;")
     ap.add_argument("--report_dir", default=None, help="Directory where evaluation reports will be saved")
     ap.add_argument("--print_errors_head", type=int, default=10, help="How many disagreement rows to preview per column")
+    ap.add_argument(
+        "--invert_gold_cols",
+        default="",
+        help="Comma-separated columns whose YES/NO gold values should be flipped before scoring "
+             "(e.g. non_swiss when gold uses old semantics vs new swiss column)",
+    )
 
     args = ap.parse_args()
 
@@ -97,6 +103,13 @@ def main() -> int:
         if not args.id_col:
             raise ValueError("You must provide --id_col unless --use_row_order is set.")
         id_col = args.id_col
+
+    invert_gold_cols = {c.strip() for c in args.invert_gold_cols.split(",") if c.strip()}
+    if invert_gold_cols:
+        _flip = {"YES": "NO", "NO": "YES", "yes": "no", "no": "yes", "Yes": "No", "No": "Yes"}
+        for c in invert_gold_cols:
+            if c in gold.columns:
+                gold[c] = gold[c].map(lambda v: _flip.get(str(v).strip(), v) if not pd.isna(v) else v)
 
     kinds_map = parse_mapping_arg(args.col_kinds)
     list_sep_map = parse_mapping_arg(args.list_seps)
