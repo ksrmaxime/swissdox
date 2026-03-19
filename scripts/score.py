@@ -77,7 +77,12 @@ def main() -> int:
         "--invert_gold_cols",
         default="",
         help="Comma-separated columns whose YES/NO gold values should be flipped before scoring "
-             "(e.g. non_swiss when gold uses old semantics vs new swiss column)",
+             "(e.g. swiss when gold uses inverted semantics like non_swiss)",
+    )
+    ap.add_argument(
+        "--rename_gold_cols",
+        default="",
+        help="Rename gold columns before scoring, e.g. non_swiss=swiss to align old gold with new pred column names",
     )
 
     args = ap.parse_args()
@@ -88,6 +93,11 @@ def main() -> int:
     if args.max_rows is not None:
         pred = pred.head(args.max_rows).reset_index(drop=True)
         gold = gold.head(args.max_rows).reset_index(drop=True)
+
+    # Rename gold columns before anything else
+    rename_gold_map = parse_mapping_arg(args.rename_gold_cols)
+    if rename_gold_map:
+        gold = gold.rename(columns=rename_gold_map)
 
     cols = [c.strip() for c in args.cols.split(",") if c.strip()]
     if not cols:
