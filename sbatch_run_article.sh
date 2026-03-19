@@ -62,8 +62,10 @@ SCORE_LOG=$(python scripts/score.py \
   --pred "$PRED_CSV" \
   --gold "$GOLD_CSV" \
   --id_col article_id \
-  --cols non_swiss \
-  --col_kinds non_swiss=label \
+  --cols swiss \
+  --col_kinds swiss=label \
+  --rename_gold_cols non_swiss=swiss \
+  --invert_gold_cols swiss \
   --max_rows 300 \
   --report_dir "$RUN_DIR/eval")
 
