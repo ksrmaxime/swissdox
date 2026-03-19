@@ -5,7 +5,7 @@ import pandas as pd
 
 SYSTEM_PROMPT = (
     "You are a STRICT text classification system.\n"
-    "Your task is to detect the rare articles that are entirely unrelated to Switzerland.\n"
+    "Your task is to detect the rare articles that have absolutely no Swiss context mentioned.\n"
     "Return ONLY valid JSON and nothing else.\n"
 )
 
@@ -18,12 +18,12 @@ Your job is ONLY to identify the rare false positives: articles that are entirel
 
 Definition of Swiss-related:
 An article IS Swiss-related if it has ANY meaningful connection to Switzerland, including but not limited to:
-- Switzerland as a country
-- Swiss politics, administration, parliament, courts, parties, laws, or public institutions
-- Swiss actors, officials, companies, organizations, experts, or residents
+- Switzerland as a country (mention of Suisse, Schweiz, Svizzera, Svizra, Swiss, Helvetia, or any of its cantons or cities etc...)
+- Swiss politics, administration, parliament, courts, parties, laws, or public institutions (mention of EDA, FDFA, Bundesrat, Bundesversammlung, Bundesgericht, Bundeskanzlei, or any Swiss political party etc...)
+- Swiss actors, officials, companies, organizations, experts, or residents (mention of UBS, Nestlé, Novartis, Swiss banks, Swiss universities, or any Swiss person etc...)
 - events, decisions, debates, or developments affecting Switzerland
 - Swiss reactions to foreign events
-- Swiss participation in international affairs
+- Swiss participation in international affairs (sent of swiss aid to a foreign country, swiss involvement in an international organization, swiss diplomacy, swiss trade relations, swiss tourism, swiss sports events etc...)
 - comparisons with Switzerland
 - consequences, implications, or relevance for Switzerland
 
