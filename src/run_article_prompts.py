@@ -12,14 +12,15 @@ SYSTEM_PROMPT = (
 USER_TEMPLATE = """You are given the title and lead of an article from a Swiss newspaper.
 
 You have to answer the following question:
-Does the title or lead mention at least one Swiss-related context (country, place, institution, person, event, etc.) ?
+Does the title or the lead mention at least one Swiss-related context (Switzerland as a country, places, institutions, persons, events, etc.) ?
+One objective mention of a relevant keyword in the title or the lead is sufficient, no need to find elements in both or to find multiple elements.
 
 YES = Swiss context mentioned
 NO  = no Swiss context mentioned
 
 Return ONLY this strict JSON:
 {{
-  "justification": "<concise explanation based only on title and lead>",
+  "justification": "<concise explanation based only on title or lead>",
   "swiss": "YES|NO"
 }}
 
