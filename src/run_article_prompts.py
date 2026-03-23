@@ -14,6 +14,7 @@ USER_TEMPLATE = """You are given the title and lead of an article from a Swiss n
 You have to answer the following question:
 Does the title or the lead mention at least one Swiss-related context (Switzerland as a country, places, institutions, persons, events, etc.) ?
 One objective mention of a relevant keyword in the title or the lead is sufficient, no need to find elements in both or to find multiple elements.
+Important, the keyword should be concretely related not hypothetical.
 
 YES = Swiss context mentioned
 NO  = no Swiss context mentioned
