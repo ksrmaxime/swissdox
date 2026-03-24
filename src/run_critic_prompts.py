@@ -12,13 +12,13 @@ SYSTEM_PROMPT = (
 USER_TEMPLATE = """You are given a sentence extracted from a text.
 
 You have to answer the following question:
-Does this sentence contain a critic or a praise towards a public administration (e.g. a government, a ministry, a public agency, a municipality, a public institution, etc.)?
+Does this sentence contains a clear and explicit critic or a praise towards the public administration (e.g. a government, a ministry, a public agency, a municipality, a public institution, etc.)?
 
-CRITIC           = complaint, blame, demand, accusation, negative judgement (explicit or clearly implied).
+CRITIC           = complaint, blame, demand, accusation, negative judgement (explicit).
 PRAISE           = compliment, approval, success framing, gratitude, positive judgement.
 NEUTRAL_STATEMENT = descriptive/factual, no clear evaluative tone, or unclear.
 
-Tie-break: if uncertain, choose NEUTRAL_STATEMENT.
+Tie-break: if uncertain or if the target is not a public administration, choose NEUTRAL_STATEMENT.
 
 Return ONLY this strict JSON:
 {{
