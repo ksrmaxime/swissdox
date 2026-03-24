@@ -14,9 +14,11 @@ USER_TEMPLATE = """You are given a sentence extracted from a text.
 You have to answer the following question:
 Does this sentence contain a critic or a praise towards a public administration (e.g. a government, a ministry, a public agency, a municipality, a public institution, etc.)?
 
-CRITIC           = the sentence expresses a negative judgment, blame, disapproval, or criticism directed at a public administration
-PRAISE           = the sentence expresses a positive judgment, approval, commendation, or praise directed at a public administration
-NEUTRAL_STATEMENT = the sentence does not express a clear positive or negative stance towards a public administration (factual statement, no public administration involved, ambiguous, etc.)
+CRITIC           = complaint, blame, demand, accusation, negative judgement (explicit or clearly implied).
+PRAISE           = compliment, approval, success framing, gratitude, positive judgement.
+NEUTRAL_STATEMENT = descriptive/factual, no clear evaluative tone, or unclear.
+
+Tie-break: if uncertain, choose NEUTRAL_STATEMENT.
 
 Return ONLY this strict JSON:
 {{
