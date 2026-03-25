@@ -12,11 +12,16 @@ SYSTEM_PROMPT = (
 USER_TEMPLATE = """You are given a sentence extracted from a text.
 
 You have to answer the following question:
-Does this sentence contains a clear and explicit critic or a praise towards the public administration (e.g. a government, a ministry, a public agency, a municipality, a public institution, etc.)?
+Does this sentence contain a clear and explicit critic or praise directed AT a public administration (e.g. a government, a ministry, a public agency, a municipality, a public institution, etc.)?
 
-CRITIC           = complaint, blame, demand, accusation, negative judgement (explicit).
-PRAISE           = compliment, approval, success framing, gratitude, positive judgement.
-NEUTRAL_STATEMENT = descriptive/factual, no clear evaluative tone, or unclear.
+CRITIC            = the public administration is BLAMED or ACCUSED for something it did or failed to do — the fault or negative judgement is imputed TO the administration itself (e.g. "the ministry wasted funds", "the government failed to act", "the agency is incompetent").
+PRAISE            = the public administration is explicitly credited or praised for something it did (e.g. "the government handled the crisis well").
+NEUTRAL_STATEMENT = anything else: factual reporting, the administration is a victim or passive subject, a third party is criticised, a proposal is described without evaluative tone, or it is unclear who bears the criticism.
+
+Key distinction — the administration must be the RESPONSIBLE PARTY being judged, not merely mentioned:
+- "DDoS attacks targeted Swiss banks" → the administration is a VICTIM, not blamed → NEUTRAL_STATEMENT
+- "The government proposes reducing travel privileges" → describes a proposal, no blame → NEUTRAL_STATEMENT
+- "The government neglected cybersecurity, leaving banks vulnerable" → blame IS imputed to the administration → CRITIC
 
 Tie-break: if uncertain or if the target is not a public administration, choose NEUTRAL_STATEMENT.
 
