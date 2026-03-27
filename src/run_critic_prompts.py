@@ -12,18 +12,27 @@ SYSTEM_PROMPT = (
 USER_TEMPLATE = """You are given a sentence extracted from a text.
 
 You have to answer the following question:
-Does this sentence contain a clear and explicit critic or praise directed AT a public administration (e.g. a government, a ministry, a public agency, a municipality, a public institution, etc.)?
+Does this sentence contain a critic or praise towards a public administration (e.g. a government, a ministry, a public agency, a municipality, a public institution, etc.)?
 
-CRITIC            = the public administration is BLAMED or ACCUSED for something it did or failed to do — the fault or negative judgement is imputed TO the administration itself (e.g. "the ministry wasted funds", "the government failed to act", "the agency is incompetent").
-PRAISE            = the public administration is explicitly credited or praised for something it did (e.g. "the government handled the crisis well").
-NEUTRAL_STATEMENT = anything else: factual reporting, the administration is a victim or passive subject, a third party is criticised, a proposal is described without evaluative tone, or it is unclear who bears the criticism.
+CRITIC            = the public administration bears responsibility for a negative outcome, failure, or wrongdoing — either explicitly stated OR logically implied by the factual framing. This includes:
+  • Direct blame or accusation for something the administration did or failed to do
+  • Factual framing that implies wrongdoing without stating it outright — e.g. that information is being withheld or concealed, that authorities are not following their own rules or the law, that past efforts by authorities have failed, or that official treatment of people is inconsistent or arbitrary
+  • Statements from third parties demanding compliance or accountability from the administration (implying current non-compliance or failure)
 
-Key distinction — the administration must be the RESPONSIBLE PARTY being judged, not merely mentioned:
-- "DDoS attacks targeted Swiss banks" → the administration is a VICTIM, not blamed → NEUTRAL_STATEMENT
-- "The government proposes reducing travel privileges" → describes a proposal, no blame → NEUTRAL_STATEMENT
-- "The government neglected cybersecurity, leaving banks vulnerable" → blame IS imputed to the administration → CRITIC
+PRAISE            = the public administration is explicitly credited or praised for something it did or achieved.
 
-Tie-break: if uncertain or if the target is not a public administration, choose NEUTRAL_STATEMENT.
+NEUTRAL_STATEMENT = anything else, including:
+  • The administration is a victim or target of external actors (attacks, crimes, external pressure)
+  • Factual description of a proposal, plan, or measure without evaluative tone
+  • Neutral reporting of what the administration said, decided, or published
+  • Description of a situation or event where no blame or implied wrongdoing is attributable to the administration
+  • A third party (not the administration) is the one being criticised or blamed
+
+Key diagnostic questions — ask them in order:
+1. Is the administration the TARGET of an external action (attack, accusation by others, external event)? → lean NEUTRAL_STATEMENT
+2. Is a proposal or decision described without the author expressing any judgement? → lean NEUTRAL_STATEMENT
+3. Is blame or wrongdoing attributed TO the administration, whether directly or by logical implication of the facts presented? → lean CRITIC
+4. Still uncertain? → choose NEUTRAL_STATEMENT
 
 Return ONLY this strict JSON:
 {{
