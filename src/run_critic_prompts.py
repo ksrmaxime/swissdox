@@ -5,38 +5,39 @@ import pandas as pd
 
 SYSTEM_PROMPT = (
     "You are a STRICT text classification system.\n"
-    "Your task is to detect whether a sentence contains a critic or a praise towards a public administration.\n"
+    "Your task is to detect whether a sentence conveys a criticism or a praise directed at a public administration.\n"
     "Return ONLY valid JSON and nothing else.\n"
 )
 
 USER_TEMPLATE = """You are given a sentence extracted from a text.
 
-You have to answer the following question:
-Does this sentence contain a critic or praise towards a public administration (e.g. a government, a ministry, a public agency, a municipality, a public institution, etc.)?
+Your task is to determine whether the sentence conveys that someone (X) holds a public administration (Y) responsible for something negative or positive.
 
-CRITIC            = the public administration bears responsibility for a negative outcome, failure, or wrongdoing — either explicitly stated OR logically implied by the factual framing. This includes:
-  • Direct blame or accusation for something the administration did or failed to do
-  • Factual framing that implies wrongdoing without stating it outright — e.g. that information is being withheld or concealed, that authorities are not following their own rules or the law, that past efforts by authorities have failed, or that official treatment of people is inconsistent or arbitrary
-  • Statements from third parties demanding compliance or accountability from the administration (implying current non-compliance or failure)
+The key question is NOT "is this sentence written in a critical tone?" but rather:
+"Does this sentence express — directly or through its factual framing — that someone (a journalist, a quoted person, a citizen, a speaker) is attributing blame, failure, or wrongdoing TO a public administration?"
 
-PRAISE            = the public administration is explicitly credited or praised for something it did or achieved.
+CRITIC = The sentence conveys that someone (X) attributes blame, failure, or wrongdoing to a public administration (Y). X can be:
+  • An explicitly named person or group expressing criticism
+  • A quoted speaker demanding accountability or implying non-compliance
+  • The author/journalist, whose choice of framing implies the administration is at fault (e.g. reporting that something is being concealed, that authorities failed at something, or that treatment is inconsistent or arbitrary)
 
-NEUTRAL_STATEMENT = anything else, including:
-  • The administration is a victim or target of external actors (attacks, crimes, external pressure)
-  • Factual description of a proposal, plan, or measure without evaluative tone
-  • Neutral reporting of what the administration said, decided, or published
-  • Description of a situation or event where no blame or implied wrongdoing is attributable to the administration
-  • A third party (not the administration) is the one being criticised or blamed
+PRAISE = The sentence conveys that someone (X) credits or praises a public administration (Y) for something it did or achieved.
 
-Key diagnostic questions — ask them in order:
-1. Is the administration the TARGET of an external action (attack, accusation by others, external event)? → lean NEUTRAL_STATEMENT
-2. Is a proposal or decision described without the author expressing any judgement? → lean NEUTRAL_STATEMENT
-3. Is blame or wrongdoing attributed TO the administration, whether directly or by logical implication of the facts presented? → lean CRITIC
-4. Still uncertain? → choose NEUTRAL_STATEMENT
+NEUTRAL_STATEMENT = The sentence does not convey that any identifiable actor is holding the administration responsible. This includes:
+  • The administration is a victim or target of external actors — no one is blaming the administration itself
+  • A proposal, plan, or measure is described without the author or any quoted person passing judgement on it
+  • The administration's actions or statements are reported neutrally, without framing that implies fault
+  • A third party (not the administration) is the one being blamed or criticised
+
+Reasoning approach:
+1. Who, if anyone, is the critic or praiser (X)? Could be named, quoted, or implicit (the journalist's framing).
+2. Who is the target administration (Y)?
+3. Is X attributing something negative (→ CRITIC) or positive (→ PRAISE) to Y, or is no such attribution present (→ NEUTRAL_STATEMENT)?
+4. If no clear attribution to an administration can be identified → NEUTRAL_STATEMENT.
 
 Return ONLY this strict JSON:
 {{
-  "justification": "<concise one-sentence explanation>",
+  "justification": "<one sentence identifying X, Y, and the nature of the attribution — or why none exists>",
   "stance": "CRITIC|PRAISE|NEUTRAL_STATEMENT"
 }}
 
