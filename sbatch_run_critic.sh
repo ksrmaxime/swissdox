@@ -50,8 +50,36 @@ python scripts/run_critic_pipeline.py \
 
 # --- Archive: outputs + prompt/config/sbatch ---
 PRED_CSV="${OUTBASE}_job${SLURM_JOB_ID}.csv"
+GOLD_CSV="data/critic_gold.csv"
 
-FINAL_RUN_DIR="data/output/run_critic_job${SLURM_JOB_ID}"
+# temporary run dir first
+RUN_DIR="data/output/run_critic_job${SLURM_JOB_ID}"
+mkdir -p "$RUN_DIR"
+
+# run evaluation and capture stdout
+SCORE_LOG=$(python scripts/score.py \
+  --pred "$PRED_CSV" \
+  --gold "$GOLD_CSV" \
+  --id_col sentence_id \
+  --cols STANCE \
+  --col_kinds STANCE=label \
+  --max_rows 150 \
+  --report_dir "$RUN_DIR/eval")
+
+echo "$SCORE_LOG"
+
+# extract numeric similarity from stdout
+SCORE=$(echo "$SCORE_LOG" | awk '/^Similarity:/ {gsub(/%/,"",$2); print $2; exit}')
+SCORE=${SCORE:-NA}
+
+# optional final renamed folder
+if [ "$SCORE" = "NA" ]; then
+  FINAL_RUN_DIR="data/output/run_critic_no_score_job${SLURM_JOB_ID}"
+else
+  SCORE_TAG=$(printf "%.2f" "$SCORE" | tr '.' 'p')
+  FINAL_RUN_DIR="data/output/run_critic_stance${SCORE_TAG}_job${SLURM_JOB_ID}"
+fi
+
 mkdir -p "$FINAL_RUN_DIR"
 
 cp "$PRED_CSV" "$FINAL_RUN_DIR/" || true
@@ -59,4 +87,13 @@ cp "src/run_critic_prompts.py" "$FINAL_RUN_DIR/prompts_used.py" || true
 cp "src/run_critic_config.py" "$FINAL_RUN_DIR/config_used.py" || true
 cp "$0" "$FINAL_RUN_DIR/sbatch_used.sbatch" || true
 
+# move eval reports too
+if [ -d "$RUN_DIR/eval" ]; then
+  mv "$RUN_DIR/eval" "$FINAL_RUN_DIR/eval"
+fi
+
+# cleanup temp dir if empty
+rmdir "$RUN_DIR" 2>/dev/null || true
+
 echo "Archived in: $FINAL_RUN_DIR"
+echo "Score: ${SCORE}%"
