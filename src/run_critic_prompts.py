@@ -11,35 +11,41 @@ SYSTEM_PROMPT = (
 
 USER_TEMPLATE = """You are given a sentence extracted from a text.
 
-Your task is to determine whether the sentence contains a negative or positive evaluation of a public administration (e.g. a government, a ministry, a public agency, a municipality, a public institution, etc.), attributed to an identifiable voice.
+Your task is to determine whether the sentence contains a negative or positive evaluation of a public administration (e.g. a government, a ministry, a public agency, a court, a municipality, etc.), attributed to an identifiable voice.
 
-The identifiable voice (X) criticising or praising the administration (Y) can be:
+The identifiable voice (X) can be:
   • A named person or group expressing a position
-  • A quoted or paraphrased speaker demanding accountability, expressing dissatisfaction, or implying the administration is failing
-  • The journalist or author, when their own word choice — including in embedded clauses, modifiers, or appositional phrases — frames the administration as responsible for a failure, obstacle, or wrongdoing
-  • Anyone recounting a personal negative or positive experience with officials or bureaucracy
+  • A quoted or paraphrased speaker demanding accountability, implying non-compliance, or recounting a negative personal experience with officials
+  • The journalist or author, through their own word choice — including language of secrecy/opacity, dysfunction, inconsistency, obstruction, past failure, or internal disarray — applied to the administration anywhere in the sentence
 
-CRITIC = The sentence contains a negative evaluation of an administration (Y) attributable to an identifiable voice (X). The critical content can appear anywhere in the sentence — in the main clause, a subordinate clause, a modifier, or an embedded phrase. Signals include: attributing failure, incompetence, obstruction, dishonesty, arbitrariness, stubbornness, or non-compliance to the administration; characterising it as an obstacle or cause of problems; implying it is acting against the public interest or against rules.
+CRITIC = The sentence contains a negative evaluation of an administration (Y) attributable to an identifiable voice (X). This includes:
+  • Direct blame or accusation for something the administration did or failed to do
+  • An expert, public figure, or citizen calling for change in institutional practice (implying current practice is inadequate)
+  • A speaker implying authorities are not meeting their obligations or failed in the past
+  • Personal testimony of intrusive, arbitrary, or harmful treatment by officials
+  • Journalist word choice that implies opacity (withheld, concealed, kept secret, not disclosed), dysfunction (key people gone, even insiders doubt), obstruction, stubbornness, inconsistency in how people are treated, or internal loss of confidence in a project
 
 PRAISE = The sentence contains a positive evaluation of an administration (Y) attributable to an identifiable voice (X).
 
 NEUTRAL_STATEMENT = The sentence does not contain an evaluation attributable to any identifiable voice. This includes:
-  • The administration is a victim of external actors — no one is blaming the administration itself
+  • The administration is a victim or target of external actors — no one is blaming the administration itself
   • The administration is the active subject making a proposal, issuing a statement, or giving its own reasons — and no external voice is evaluating or challenging this
-  • Neutral reporting of what an administration did or decided, using plain non-evaluative language
+  • Neutral reporting of what the administration did or decided, using plain non-evaluative language
   • A third party (not the administration) is the one being evaluated
+  • Legal or administrative proceedings described as procedural facts: a private party filing a complaint or appeal against an administrative decision, a court ordering an administration to review a case — these are institutional processes, not criticisms
+  • A politician or candidate making a conditional promise about future action — this does not attribute blame to any current administration
   • The administration is defending or explaining itself in response to external criticism — unless it admits fault
-  • A factual situation is described where the administration is incidentally mentioned without being held responsible
 
 Reasoning approach — work through these steps:
-1. Scan the entire sentence, including all subordinate clauses and modifiers: is there any evaluative language (positive or negative) applied to the administration anywhere in the sentence?
+1. Is the sentence describing a legal/procedural fact (complaint filed, appeal lodged, court ordering review) or a conditional future promise? → lean NEUTRAL_STATEMENT
+2. Scan the entire sentence, including all subordinate clauses and modifiers: is there any evaluative language (positive or negative) applied to the administration?
    - If no evaluative language anywhere → NEUTRAL_STATEMENT
-2. Who is the voice (X) behind that evaluation — named, quoted, or implicit in the journalist's own word choice?
+3. Who is the voice (X) behind that evaluation — named, quoted, or implicit in the journalist's own word choice?
    - If the only voice is the administration itself (proposing, explaining, defending) and no external voice evaluates it → NEUTRAL_STATEMENT
-3. Is the target of the evaluation (Y) a public administration?
-   - If the target is a private entity, a foreign government unrelated to Swiss/local administration, or a third party → NEUTRAL_STATEMENT
-4. Is the evaluation negative → CRITIC, or positive → PRAISE?
-5. If still uncertain → NEUTRAL_STATEMENT
+4. Is the target of the evaluation (Y) a public administration?
+   - If the target is a private entity or a third party → NEUTRAL_STATEMENT
+5. Is the evaluation negative → CRITIC, or positive → PRAISE?
+6. If still uncertain → NEUTRAL_STATEMENT
 
 Return ONLY this strict JSON:
 {{
