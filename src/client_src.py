@@ -60,8 +60,8 @@ class TransformersClient:
             trust_remote_code=cfg.trust_remote_code,
         )
 
-        # Stabilise padding + évite warnings/bugs
-        self.tok.padding_side = "right"
+        # Decoder-only models require left-padding for correct generation
+        self.tok.padding_side = "left"
         if self.tok.pad_token_id is None:
             self.tok.pad_token = self.tok.eos_token
 

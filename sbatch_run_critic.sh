@@ -12,6 +12,8 @@
 
 set -euo pipefail
 
+export PYTORCH_ALLOC_CONF=expandable_segments:True
+
 module purge
 module load python/3.12.1
 
@@ -43,7 +45,7 @@ python scripts/run_critic_pipeline.py \
   --trust_remote_code \
   --text_col sentence \
   --decision_col STANCE \
-  --batch_size 50 \
+  --batch_size 16 \
   --max_new_tokens 80 \
   --temperature 0.0
 
