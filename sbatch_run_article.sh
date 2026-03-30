@@ -51,7 +51,7 @@ python scripts/run_article_pipeline.py \
 
 # --- Archive: outputs + prompt/config/sbatch ---
 PRED_CSV="${OUTBASE}_job${SLURM_JOB_ID}.csv"
-GOLD_CSV="data/swissdox_article_with_s_GOLD.csv"
+GOLD_CSV="data/PARP_RUN1_Scoring_Gold.csv"
 
 # temporary run dir first
 RUN_DIR="data/output/run_article_job${SLURM_JOB_ID}"
@@ -66,7 +66,7 @@ SCORE_LOG=$(python scripts/score.py \
   --col_kinds swiss=label \
   --rename_gold_cols non_swiss=swiss \
   --invert_gold_cols swiss \
-  --max_rows 300 \
+  --max_rows 302 \
   --report_dir "$RUN_DIR/eval")
 
 echo "$SCORE_LOG"
