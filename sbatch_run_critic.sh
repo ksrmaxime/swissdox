@@ -46,7 +46,7 @@ python scripts/run_critic_pipeline.py \
   --text_col sentence \
   --decision_col STANCE \
   --batch_size 16 \
-  --max_new_tokens 150 \
+  --max_new_tokens 300 \
   --temperature 0.0
 
 
