@@ -115,7 +115,9 @@ def main() -> int:
         return run_critic_prompts.build_user_prompt(row, text_col=text_col)
 
     def _parse(raw: str) -> dict:
-        return parse_critic_json(raw)
+        result = parse_critic_json(raw)
+        result["raw_response"] = raw
+        return result
 
     out = run_llm_dataframe(
         df=df,
@@ -125,7 +127,7 @@ def main() -> int:
         select_mask_fn=_select_mask,
         build_prompt_fn=_build_prompt,
         parse_fn=_parse,
-        output_cols=["STANCE", "justification"],
+        output_cols=["STANCE", "justification", "raw_response"],
         skip_if_already_filled="STANCE",
     )
 
