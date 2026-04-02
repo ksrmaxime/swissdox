@@ -67,7 +67,7 @@ SCORE_LOG=$(python scripts/score.py \
   --id_col sentence_id \
   --cols STANCE \
   --col_kinds STANCE=label \
-  --max_rows 150 \
+  --max_rows 300 \
   --report_dir "$RUN_DIR/eval")
 
 echo "$SCORE_LOG"
