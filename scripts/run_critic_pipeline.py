@@ -78,10 +78,16 @@ def main() -> int:
     ap.add_argument("--batch_size", type=int, default=64)
     ap.add_argument("--temperature", type=float, default=0.0)
     ap.add_argument("--max_new_tokens", type=int, default=80)
+    ap.add_argument("--max_rows", type=int, default=None,
+                    help="Limite le nombre de lignes traitées par le LLM (ex: 300). "
+                         "Si omis, toutes les lignes sont traitées.")
 
     args = ap.parse_args()
 
     df = pd.read_parquet(args.input) if args.input.endswith(".parquet") else pd.read_csv(args.input)
+
+    if args.max_rows is not None:
+        df = df.iloc[: args.max_rows].copy()
 
     send_mask = build_sentences_to_send_mask(df, sentence_col=args.text_col)
 

@@ -35,6 +35,7 @@ nvidia-smi -L || true
 MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
 DTYPE=bf16
 BACKEND=transformers
+MAX_ROWS=300   # Nombre max de lignes traitées par le LLM (laisser vide pour tout traiter)
 
 python scripts/run_critic_pipeline.py \
   --input "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/critic_base.csv" \
@@ -47,7 +48,8 @@ python scripts/run_critic_pipeline.py \
   --decision_col STANCE \
   --batch_size 16 \
   --max_new_tokens 300 \
-  --temperature 0.0
+  --temperature 0.0 \
+  --max_rows "$MAX_ROWS"
 
 
 # --- Archive: outputs + prompt/config/sbatch ---
