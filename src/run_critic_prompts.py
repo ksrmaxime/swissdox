@@ -11,54 +11,63 @@ SYSTEM_PROMPT = (
 
 USER_TEMPLATE = """You are given a sentence extracted from a text.
 
-Classify whether the sentence contains a negative or positive EVALUATION — not merely a DESCRIPTION — of a public administration (a government, ministry, agency, court, municipality, etc.) attributed to an identifiable voice.
+Classify whether the sentence contains a JUDGMENT — not just a description — that a public administration (a government, ministry, agency, court, municipality, etc.) acted wrongly, failed, was inadequate, or (for PRAISE) acted well.
 
-═══ THE CORE DISTINCTION ═══
-A sentence can DESCRIBE an administration's action (neutral) or EVALUATE it (critic/praise).
-Describing what officials did — even dramatic or consequential actions (arrests, sanctions, enforcement, rulings, denials) — is NOT a criticism unless the sentence also contains language that judges the action as wrong, unjust, excessive, incompetent, opaque, or arbitrary.
+━━━ THE CENTRAL TEST ━━━
+Before classifying, ask: "Does this sentence make a CLAIM that the administration DID SOMETHING WRONG or FAILED?"
+— If the answer is clearly YES → lean CRITIC
+— If the sentence merely describes what happened, what was decided, or how a situation unfolded → lean NEUTRAL_STATEMENT
+A word with negative connotations does NOT automatically mean CRITIC. The sentence must carry a claim of wrongdoing or failure directed AT the administration.
 
-═══ CRITIC ═══
-The sentence contains at least one evaluative signal — even in a subordinate clause, modifier, or embedded phrase — that attributes fault, failure, injustice, or inadequacy to a public administration (Y) through an identifiable voice (X).
+━━━ CRITIC ━━━
+The sentence contains a claim of wrongdoing, failure, or inadequacy directed at the administration (Y) from an identifiable voice (X):
+  • A named or quoted person who: accuses the administration, demands it comply with rules (implying it doesn't), recounts harmful personal treatment by officials, or calls for a change in institutional practice (implying current practice is inadequate)
+  • The journalist's own language — but ONLY when it explicitly labels the administration's behavior as failure, dysfunction, unjust, opaque, or arbitrary. Specifically:
+    - Secrecy / opacity: "kept secret", "withheld", "under wraps", "nicht veröffentlicht / unter Verschluss gehalten"
+    - Stubbornness embedded as a clause modifier: "had long clung to X despite warnings", "continued to insist despite all criticism"
+    - Explicit failure or absurdity labels: "billion-franc flop", "absurd that X", "regulatory standstill that contradicts Y"
+    - Describing bureaucracy as an obstacle or cause of harm: "stumbling block", "unnecessary bureaucracy without real benefit"
+    - Noting inconsistency implying arbitrary treatment: "outcomes differ depending on the official or location"
+    - Reference to the administration's past inability to fulfill obligations: "what the authorities had previously failed to achieve"
 
-Identifiable voices include:
-  • A named or quoted person demanding accountability, expressing dissatisfaction, implying non-compliance, or recounting harmful treatment by officials in a first-person account
-  • The journalist/author, when their own word choice carries evaluative meaning about the administration
+━━━ PRAISE ━━━
+The sentence contains a positive judgment of the administration (Y) by an identifiable voice (X).
 
-Evaluative signals in the journalist's language (these are CRITIC even when phrased as facts):
-  • Opacity / secrecy: kept secret, withheld, concealed, under wraps, not disclosed, "unter Verschluss", "sous le sceau du secret"
-  • Stubbornness / poor judgment embedded in a clause: "had long clung to", "despite all warnings", "continued to insist despite"
-  • Dysfunction / loss of confidence: "even insiders no longer believe", "key figures have left", "the project is in doubt"
-  • Explicit failure / absurdity labels: "billion-franc flop", "absurd that", "regulatory standstill", "stumbling block"
-  • Unnecessary or harmful bureaucracy: "unnecessary bureaucracy without real benefit", "bureaucratic obstacle", "regulatory paralysis"
-  • Inconsistent or arbitrary treatment: "outcomes vary by official", "different experiences depending on location or civil servant"
-  • Past inability of authorities to act: "what authorities had previously failed to achieve", "what had not worked before"
-  • An expert or public figure calling for a change in institutional practice (implying current practice is inadequate)
+━━━ NEUTRAL_STATEMENT ━━━
+Use NEUTRAL_STATEMENT whenever the sentence does not clearly pass the central test. In particular:
 
-═══ PRAISE ═══
-The sentence contains a positive evaluation of an administration (Y) by an identifiable voice (X).
+DESCRIBING AN ACTION IS NOT EVALUATING IT. Even if the action is dramatic or has negative consequences, reporting it factually is NEUTRAL:
+  • Officials arresting, threatening, enforcing rules, or issuing rulings → described factually = NEUTRAL
+  • A government shutdown or crisis described using its standard terminology → NEUTRAL
 
-═══ NEUTRAL_STATEMENT ═══
-The sentence describes facts, actions, decisions, or processes without any evaluative signal. This includes:
-  • Officials performing authority actions (arrests, threats, enforcement, rulings, sanctions) described factually without the author judging them
-  • The administration is the grammatical subject making a proposal, giving its own reasons, or explaining its position — no external voice evaluates this
-  • A third party challenging or opposing the administration through a legal process (filing a complaint, lodging an appeal) — this is a procedural fact, not a criticism
-  • A politician or candidate making a conditional promise about future action — this does not attribute blame to any current administration
-  • The administration defending or explaining itself in response to external criticism (unless it admits fault)
-  • A foreign or non-local administration's actions (outside the scope of Swiss public administration)
-  • Evaluative language in the sentence targets a non-administration entity (a private actor, a foreign government, an individual politician in a personal capacity) — the administration is not the target
+THE ADMINISTRATION SPEAKING FOR ITSELF IS NOT CRITICISM OF IT:
+  • The administration giving its own reasons, explaining a decision, or stating a policy position → its own voice is not an external evaluator → NEUTRAL
+  • An official making a normative statement about what policy should be ("must happen") → NEUTRAL
 
-═══ REASONING ═══
-Step 1 — Quick exclusions: Is this a legal procedure, a conditional promise, a foreign administration, or evaluative language targeting a non-administration entity? → NEUTRAL_STATEMENT
-Step 2 — Scan every clause and modifier: is there any evaluative signal (see CRITIC list above) applied to a public administration anywhere in the sentence?
-  • No evaluative signal anywhere → NEUTRAL_STATEMENT
-Step 3 — Is the evaluative signal from the journalist's own word choice, or from an identifiable speaker?
-  • If the only voice is the administration itself (explaining, proposing, defending) and no outside voice evaluates it → NEUTRAL_STATEMENT
-Step 4 — Is the evaluation negative → CRITIC, or positive → PRAISE?
-Step 5 — Still uncertain → NEUTRAL_STATEMENT
+EXPERT AND LEGAL OBSERVATIONS ARE NOT EVALUATIONS OF THE ADMINISTRATION:
+  • A legal scholar describing institutional attributes (discretionary power, procedural rights, scope of competence) → NEUTRAL
+  • An expert assessing the chances of a lawsuit → evaluates the lawsuit, not the administration → NEUTRAL
+
+OTHER NEUTRAL PATTERNS:
+  • A third party challenging the administration in a legal process (filing a complaint, lodging an appeal) → procedural fact → NEUTRAL
+  • A politician making a conditional promise about future action → no blame attributed to current administration → NEUTRAL
+  • Evaluative language that targets something OTHER than the administration: a private actor, a foreign government, a phone call, a lawsuit → NEUTRAL
+  • Actions of a foreign or non-local administration → NEUTRAL
+
+━━━ DECISION STEPS ━━━
+1. Is the sentence about a Swiss or local public administration? If it concerns a foreign government's internal situation → NEUTRAL_STATEMENT
+2. Is there evaluative language (a judgment of wrong/failure/inadequacy) — including in subordinate clauses or modifiers?
+   • No evaluative language → NEUTRAL_STATEMENT
+3. Does the evaluative language target the administration's behavior or decisions (not a lawsuit, a phone call, a private actor)?
+   • Target is not the administration → NEUTRAL_STATEMENT
+4. Is the evaluative voice external to the administration (not the administration explaining itself)?
+   • Only voice is the administration's own → NEUTRAL_STATEMENT
+5. Is the judgment negative → CRITIC, or positive → PRAISE?
+6. Still uncertain → NEUTRAL_STATEMENT
 
 Return ONLY this strict JSON:
 {{
-  "justification": "<one sentence: name the evaluative signal and its source (X), or explain why no evaluation is present>",
+  "justification": "<one sentence: state the claim of wrongdoing/failure and its source — or confirm no such claim is present>",
   "stance": "CRITIC|PRAISE|NEUTRAL_STATEMENT"
 }}
 
