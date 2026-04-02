@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=run_critic_stance
-#SBATCH --partition=gpu
+#SBATCH --partition=gpu-h100
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
@@ -32,7 +32,7 @@ echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<unset>}"
 echo "DATE=$(date -Is)"
 nvidia-smi -L || true
 
-MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
+MODEL_PATH=/reference/LLM/swiss-ai/Apertus-70B-Instruct-2509
 DTYPE=bf16
 BACKEND=transformers
 MAX_ROWS=300   # Nombre max de lignes traitées par le LLM (laisser vide pour tout traiter)
