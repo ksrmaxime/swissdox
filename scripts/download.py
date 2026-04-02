@@ -22,7 +22,7 @@ def main() -> None:
 
     query_name = f"BuerokratieVerwaltung_{datetime.now():%Y%m%d_%H%M%S}"
     comment = "CURNAGL pipeline: query -> clean -> article lead extraction"
-    expiration_date = "2026-03-30"
+    expiration_date = "2026-04-30"
 
     out_paths = run_pipeline(
         start_date=args.start,
