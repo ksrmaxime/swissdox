@@ -44,7 +44,7 @@ PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/run_article_pipeline.
   --trust_remote_code \
   --text_col lead \
   --decision_col non_swiss \
-  --batch_size 50 \
+  --batch_size 24 \
   --max_new_tokens 160 \
   --temperature 0.0
 
