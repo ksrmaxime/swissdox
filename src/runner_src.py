@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Dict, List, Optional
 import pandas as pd
 
@@ -32,6 +33,8 @@ def run_llm_dataframe(
     parse_fn: Callable[[str], Dict[str, object]],
     output_cols: List[str],
     skip_if_already_filled: Optional[str] = None,
+    checkpoint_path: Optional[str] = None,
+    checkpoint_every: int = 5,
 ) -> pd.DataFrame:
     """
     - select_mask_fn(df) -> bool mask des lignes à traiter
@@ -39,6 +42,8 @@ def run_llm_dataframe(
     - parse_fn(raw_completion) -> dict {col: value, ...}
     - output_cols = colonnes qu'on garantit dans df
     - skip_if_already_filled: si défini, on saute les lignes où df[col] n'est pas NA
+    - checkpoint_path: si défini, sauvegarde le df toutes les checkpoint_every batchs
+    - checkpoint_every: nombre de batchs entre chaque sauvegarde (défaut 5)
     """
     df = df.copy()
     df = ensure_columns(df, output_cols)
@@ -55,8 +60,11 @@ def run_llm_dataframe(
     if not idx:
         return df
 
+    total = len(idx)
+    print(f"[runner] {total} lignes à traiter, batch_size={cfg.batch_size}, checkpoint_every={checkpoint_every} batchs", flush=True)
+
     # batching
-    for start in range(0, len(idx), int(cfg.batch_size)):
+    for batch_num, start in enumerate(range(0, total, int(cfg.batch_size))):
         batch_idx = idx[start:start + int(cfg.batch_size)]
         batch_rows = df.loc[batch_idx]
 
@@ -74,5 +82,20 @@ def run_llm_dataframe(
             for k, v in parsed.items():
                 if k in df.columns:
                     df.at[row_id, k] = v
+
+        done = min(start + int(cfg.batch_size), total)
+        print(f"[runner] batch {batch_num + 1} — {done}/{total} lignes traitées", flush=True)
+
+        # checkpoint
+        if checkpoint_path and (batch_num + 1) % checkpoint_every == 0:
+            Path(checkpoint_path).parent.mkdir(parents=True, exist_ok=True)
+            df.to_parquet(checkpoint_path, index=False)
+            print(f"[runner] checkpoint sauvegardé → {checkpoint_path}", flush=True)
+
+    # checkpoint final
+    if checkpoint_path:
+        Path(checkpoint_path).parent.mkdir(parents=True, exist_ok=True)
+        df.to_parquet(checkpoint_path, index=False)
+        print(f"[runner] checkpoint final sauvegardé → {checkpoint_path}", flush=True)
 
     return df

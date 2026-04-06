@@ -71,7 +71,13 @@ def main() -> int:
 
     args = ap.parse_args()
 
-    df = pd.read_parquet(args.input) if args.input.endswith(".parquet") else pd.read_csv(args.input)
+    checkpoint_path = args.output_base + "_checkpoint.parquet"
+
+    if Path(checkpoint_path).exists():
+        print(f"[pipeline] Checkpoint trouvé, reprise depuis {checkpoint_path}", flush=True)
+        df = pd.read_parquet(checkpoint_path)
+    else:
+        df = pd.read_parquet(args.input) if args.input.endswith(".parquet") else pd.read_csv(args.input)
 
     send_mask = build_sentences_to_send_mask(df, title_col="title", lead_col="lead")
 
@@ -117,6 +123,8 @@ def main() -> int:
         parse_fn=_parse,
         output_cols=["swiss", "justification"],
         skip_if_already_filled="justification",
+        checkpoint_path=checkpoint_path,
+        checkpoint_every=5,
     )
 
     job_id = os.environ.get("SLURM_JOB_ID") or args.job_id or "nojobid"
