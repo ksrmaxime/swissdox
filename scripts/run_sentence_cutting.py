@@ -94,6 +94,30 @@ def split_sentences(text: str) -> list[str]:
     return [p.replace(_PLACEHOLDER, '.').strip() for p in parts if p.strip()]
 
 
+def process_chunk(chunk: pd.DataFrame, text_col: str, swiss_col: str, kw_pattern) -> list[dict]:
+    """Process one chunk of articles, return list of sentence dicts. Never holds exploded df in memory."""
+    meta_cols = [c for c in chunk.columns if c != text_col]
+    rows = []
+    for _, article in chunk.iterrows():
+        if str(article[swiss_col]).strip().upper() != "YES":
+            continue
+        sentences = split_sentences(article[text_col])
+        for sent in sentences:
+            sent = sent.strip()
+            if not sent or sent == "nan":
+                continue
+            if not kw_pattern.search(sent):
+                continue
+            matched = ", ".join(sorted(set(
+                x.strip() for x in kw_pattern.findall(sent) if isinstance(x, str)
+            )))
+            row = {c: article[c] for c in meta_cols}
+            row["sentence"] = sent
+            row["matched_keywords"] = matched
+            rows.append(row)
+    return rows
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Cut articles into keyword-filtered sentences for run_critic_pipeline.py"
@@ -106,65 +130,79 @@ def main() -> int:
                     help="Column to split into sentences. Auto-detected if omitted (prefers 'text', falls back to 'lead').")
     ap.add_argument("--swiss_col", default="swiss",
                     help="Column containing YES/NO swiss flag (default: swiss)")
+    ap.add_argument("--chunk_size", type=int, default=2000,
+                    help="Nombre d'articles traités par chunk (default: 2000)")
     args = ap.parse_args()
 
-    # ── Load ──────────────────────────────────────────────────────────────────
     input_path = Path(args.input)
     if not input_path.exists():
         print(f"[ERROR] Input file not found: {input_path}", file=sys.stderr)
         return 1
 
-    df = pd.read_parquet(input_path) if input_path.suffix == ".parquet" else pd.read_csv(input_path)
-    print(f"[sentence_cutting] Loaded {len(df):,} rows from {input_path}")
+    # ── Load uniquement pour inspecter les colonnes ───────────────────────────
+    if input_path.suffix == ".parquet":
+        df_full = pd.read_parquet(input_path)
+    else:
+        df_full = pd.read_csv(input_path)
 
-    # ── Detect text column ───────────────────────────────────────────────────
+    print(f"[sentence_cutting] Loaded {len(df_full):,} rows from {input_path}")
+
     if args.text_col:
         text_col = args.text_col
-    elif "text" in df.columns:
+    elif "text" in df_full.columns:
         text_col = "text"
-    elif "lead" in df.columns:
+    elif "lead" in df_full.columns:
         text_col = "lead"
     else:
-        print(f"[ERROR] No 'text' or 'lead' column found. Columns: {list(df.columns)}", file=sys.stderr)
+        print(f"[ERROR] No 'text' or 'lead' column found. Columns: {list(df_full.columns)}", file=sys.stderr)
         return 1
     print(f"[sentence_cutting] Using text column: '{text_col}'")
 
-    if args.swiss_col not in df.columns:
-        print(f"[ERROR] Swiss column '{args.swiss_col}' not found. Columns: {list(df.columns)}", file=sys.stderr)
+    if args.swiss_col not in df_full.columns:
+        print(f"[ERROR] Swiss column '{args.swiss_col}' not found. Columns: {list(df_full.columns)}", file=sys.stderr)
         return 1
 
-    # ── Filter swiss == YES ───────────────────────────────────────────────────
-    mask_swiss = df[args.swiss_col].astype(str).str.strip().str.upper() == "YES"
-    df_swiss = df[mask_swiss].copy()
-    print(f"[sentence_cutting] Rows swiss=YES: {len(df_swiss):,} / {len(df):,}")
+    n_total = len(df_full)
+    n_swiss = int((df_full[args.swiss_col].astype(str).str.strip().str.upper() == "YES").sum())
+    print(f"[sentence_cutting] Rows swiss=YES: {n_swiss:,} / {n_total:,}")
 
-    # ── Split sentences ───────────────────────────────────────────────────────
     kw_pattern = build_kw_pattern(KW_SENT)
 
-    df_swiss["sentence"] = df_swiss[text_col].apply(split_sentences)
-    df_exp = df_swiss.explode("sentence", ignore_index=True)
-    df_exp["sentence"] = df_exp["sentence"].astype(str).str.strip()
-    df_exp = df_exp[df_exp["sentence"].ne("") & df_exp["sentence"].ne("nan")]
-
-    # ── Keyword filter ────────────────────────────────────────────────────────
-    mask_kw = df_exp["sentence"].str.contains(kw_pattern, na=False)
-    df_exp = df_exp[mask_kw].copy()
-    print(f"[sentence_cutting] Sentences kept after keyword filter: {len(df_exp):,}")
-
-    df_exp["matched_keywords"] = df_exp["sentence"].str.findall(kw_pattern).apply(
-        lambda lst: ", ".join(sorted(set(x.strip() for x in lst if isinstance(x, str))))
-    )
-
-    # ── Drop source text column, add sentence_id ─────────────────────────────
-    df_exp = df_exp.drop(columns=[text_col], errors="ignore")
-    df_exp.insert(0, "sentence_id", range(1, len(df_exp) + 1))
-
-    # ── Save ──────────────────────────────────────────────────────────────────
+    # ── Traitement par chunks + écriture incrémentale ─────────────────────────
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    df_exp.to_csv(output_path, index=False, encoding="utf-8-sig")
-    print(f"[sentence_cutting] Saved {len(df_exp):,} sentences → {output_path}")
 
+    sentence_id = 1
+    total_sentences = 0
+    first_chunk = True
+
+    for chunk_start in range(0, n_total, args.chunk_size):
+        chunk = df_full.iloc[chunk_start:chunk_start + args.chunk_size]
+        rows = process_chunk(chunk, text_col, args.swiss_col, kw_pattern)
+
+        if not rows:
+            print(f"[sentence_cutting] Chunk {chunk_start//args.chunk_size + 1}: 0 phrases", flush=True)
+            continue
+
+        chunk_df = pd.DataFrame(rows)
+        chunk_df.insert(0, "sentence_id", range(sentence_id, sentence_id + len(chunk_df)))
+        sentence_id += len(chunk_df)
+        total_sentences += len(chunk_df)
+
+        chunk_df.to_csv(
+            output_path,
+            mode="w" if first_chunk else "a",
+            header=first_chunk,
+            index=False,
+            encoding="utf-8-sig",
+        )
+        first_chunk = False
+
+        print(f"[sentence_cutting] Chunk {chunk_start//args.chunk_size + 1} "
+              f"({chunk_start+1}-{min(chunk_start+args.chunk_size, n_total)}/{n_total}) "
+              f"→ {len(rows)} phrases | total: {total_sentences:,}", flush=True)
+
+    print(f"[sentence_cutting] Saved {total_sentences:,} sentences → {output_path}")
     return 0
 
 
