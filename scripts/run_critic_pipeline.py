@@ -81,6 +81,10 @@ def main() -> int:
     ap.add_argument("--max_rows", type=int, default=None,
                     help="Limite le nombre de lignes traitées par le LLM (ex: 300). "
                          "Si omis, toutes les lignes sont traitées.")
+    ap.add_argument("--task_id", type=int, default=None,
+                    help="Index de la tâche array (0-indexed). Si omis, utilise SLURM_ARRAY_TASK_ID.")
+    ap.add_argument("--num_tasks", type=int, default=None,
+                    help="Nombre total de tâches array. Si omis, traite tout le dataset.")
 
     args = ap.parse_args()
 
@@ -88,6 +92,23 @@ def main() -> int:
 
     if args.max_rows is not None:
         df = df.iloc[: args.max_rows].copy()
+
+    # ── Slicing pour job array ────────────────────────────────────────────────
+    task_id = args.task_id
+    if task_id is None and os.environ.get("SLURM_ARRAY_TASK_ID"):
+        task_id = int(os.environ["SLURM_ARRAY_TASK_ID"])
+
+    num_tasks = args.num_tasks
+    if num_tasks is None and os.environ.get("SLURM_ARRAY_TASK_COUNT"):
+        num_tasks = int(os.environ["SLURM_ARRAY_TASK_COUNT"])
+
+    if task_id is not None and num_tasks is not None:
+        import math
+        chunk_size = math.ceil(len(df) / num_tasks)
+        start = task_id * chunk_size
+        end = min(start + chunk_size, len(df))
+        print(f"[pipeline] Array task {task_id}/{num_tasks} — lignes {start}:{end} ({end - start} lignes)", flush=True)
+        df = df.iloc[start:end].copy()
 
     send_mask = build_sentences_to_send_mask(df, sentence_col=args.text_col)
 
@@ -125,6 +146,14 @@ def main() -> int:
         result["raw_response"] = raw
         return result
 
+    task_suffix = f"_task{task_id}" if task_id is not None else ""
+    checkpoint_path = args.output_base + f"{task_suffix}_checkpoint.parquet"
+
+    # reprise depuis checkpoint si disponible
+    if Path(checkpoint_path).exists():
+        print(f"[pipeline] Checkpoint trouvé, reprise depuis {checkpoint_path}", flush=True)
+        df = pd.read_parquet(checkpoint_path)
+
     out = run_llm_dataframe(
         df=df,
         cfg=run_cfg,
@@ -135,11 +164,16 @@ def main() -> int:
         parse_fn=_parse,
         output_cols=["STANCE", "justification", "raw_response"],
         skip_if_already_filled="STANCE",
+        checkpoint_path=checkpoint_path,
+        checkpoint_every=5,
     )
 
-    job_id = os.environ.get("SLURM_JOB_ID") or args.job_id or "nojobid"
+    job_id = os.environ.get("SLURM_ARRAY_JOB_ID") or os.environ.get("SLURM_JOB_ID") or args.job_id or "nojobid"
 
-    base = f"{args.output_base}_job{job_id}"
+    if task_id is not None:
+        base = f"{args.output_base}_task{task_id}_job{job_id}"
+    else:
+        base = f"{args.output_base}_job{job_id}"
     parquet_path = base + ".parquet"
     csv_path = base + ".csv"
 
