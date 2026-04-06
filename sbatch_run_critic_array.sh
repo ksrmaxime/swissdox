@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --time=15:00:00
+#SBATCH --time=24:00:00
 #SBATCH --output=logs/critic_array_%A_%a.out
 #SBATCH --error=logs/critic_array_%A_%a.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
