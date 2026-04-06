@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=run_article_swissrelated
-#SBATCH --partition=gpu
+#SBATCH --partition=gpu-l40
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
@@ -35,7 +35,7 @@ MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
 DTYPE=bf16
 BACKEND=transformers
 
-python scripts/run_article_pipeline.py \
+PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/run_article_pipeline.py \
   --input "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/swissdox_articles_lead.parquet" \
   --output_base "$OUTBASE" \
   --model_path "$MODEL_PATH" \
