@@ -2,7 +2,7 @@
 #SBATCH --job-name=sentence_cutting
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=16G
+#SBATCH --mem=48G
 #SBATCH --time=01:00:00
 #SBATCH --output=logs/sentence_cutting_%j.out
 #SBATCH --error=logs/sentence_cutting_%j.err
