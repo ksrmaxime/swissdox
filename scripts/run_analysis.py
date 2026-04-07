@@ -693,7 +693,7 @@ def _quarterly_by_group(
     )
     cmap = _HEATMAP_COLORS.get(stance, "Blues")
     fig, ax = plt.subplots(figsize=(max(10, len(cats_present) * 1.5), max(8, len(all_quarters) * 0.35)))
-    im = ax.imshow(heat.values, aspect="auto", cmap=cmap, interpolation="nearest")
+    im = ax.imshow(heat.values.astype(float), aspect="auto", cmap=cmap, interpolation="nearest")
     plt.colorbar(im, ax=ax, label="% of all sentences")
     ax.set_xticks(np.arange(len(heat.columns)))
     ax.set_xticklabels(heat.columns, rotation=30, ha="right", fontsize=9)
