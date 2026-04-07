@@ -740,6 +740,68 @@ def fig_12_allcat_neutral_quarterly(df: pd.DataFrame, outdir: Path) -> None:
     _quarterly_by_group(df, outdir, "NEUTRAL_STATEMENT", MAIN_CATEGORIES, "12")
 
 
+# ── Figure 15 — One graph per department: quarterly CRITIC evolution ───────────
+
+def fig_15_per_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 15] One graph per department × CRITIC × quarterly", flush=True)
+
+    critics      = df[df["STANCE"] == "CRITIC"].copy()
+    all_quarters = sorted(df["year_q"].unique(), key=lambda s: (int(s[:4]), int(s[-1])))
+    total_all_q  = df.groupby("year_q")["STANCE"].count().reindex(all_quarters, fill_value=0)
+    x            = np.arange(len(all_quarters))
+
+    dept_dir = outdir / "15_per_dept_critic"
+    dept_dir.mkdir(parents=True, exist_ok=True)
+
+    rows = []
+    for dept in DEPT_CATEGORIES:
+        label = dept.replace("Dept: ", "")
+        dept_q = (
+            critics[critics["primary_category"] == dept]
+            .groupby("year_q").size()
+            .reindex(all_quarters, fill_value=0)
+            / total_all_q * 100
+        ).fillna(0)
+
+        if dept_q.sum() == 0:
+            print(f"  [skip] {label} — no CRITIC rows", flush=True)
+            continue
+
+        color = CATEGORY_COLORS.get(dept, "#555")
+
+        fig, ax = plt.subplots(figsize=(max(12, len(all_quarters) * 0.55), 5))
+        ax.fill_between(x, dept_q.values, alpha=0.15, color=color)
+        ax.plot(x, dept_q.values, color=color, linewidth=2.2,
+                marker="o", markersize=5)
+
+        # annotate peak quarter
+        peak_idx = int(np.argmax(dept_q.values))
+        ax.annotate(
+            f"Peak: {dept_q.values[peak_idx]:.2f}%",
+            xy=(x[peak_idx], dept_q.values[peak_idx]),
+            xytext=(x[peak_idx], dept_q.values[peak_idx] + dept_q.values.max() * 0.08),
+            ha="center", fontsize=9, color=color,
+            arrowprops=dict(arrowstyle="-", color=color, lw=1),
+        )
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(all_quarters, rotation=45, ha="right", fontsize=7)
+        ax.set_title(f"CRITIC — {label} — quarterly evolution (% of all sentences)", fontsize=13)
+        ax.set_xlabel("Quarter")
+        ax.set_ylabel("Share of all sentences (%)")
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
+        ax.set_ylim(bottom=0)
+
+        fname = label.lower().replace(" ", "_").replace("/", "_")
+        save(fig, dept_dir / f"15_{fname}_critic_quarterly.png")
+
+        for q, v in zip(all_quarters, dept_q.values):
+            rows.append({"department": label, "quarter": q, "critic_pct": round(v, 3)})
+
+    pd.DataFrame(rows).to_csv(outdir / "stats" / "15_per_dept_critic_quarterly.csv", index=False)
+    print(f"  → saved in {dept_dir}/", flush=True)
+
+
 # ── Figures 13-14 — Proportion of mentions by target (all stances) ────────────
 
 def _mention_share_fig(
@@ -872,6 +934,7 @@ def main() -> int:
     fig_12_allcat_neutral_quarterly(df, outdir)
     fig_13_mention_share_all(df, outdir)
     fig_14_mention_share_depts(df, outdir)
+    fig_15_per_dept_critic_quarterly(df, outdir)
 
     print(f"\n[analysis] Done. Results in {outdir}", flush=True)
     return 0
