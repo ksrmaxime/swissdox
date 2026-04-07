@@ -774,14 +774,17 @@ def fig_15_per_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
         ax.plot(x, dept_q.values, color=color, linewidth=2.2,
                 marker="o", markersize=5)
 
-        # annotate peak quarter
+        # annotate peak quarter — text fixed in top-right corner, arrow toward peak
         peak_idx = int(np.argmax(dept_q.values))
         ax.annotate(
-            f"Peak: {dept_q.values[peak_idx]:.2f}%",
+            f"Peak: {all_quarters[peak_idx]}\n{dept_q.values[peak_idx]:.2f}%",
             xy=(x[peak_idx], dept_q.values[peak_idx]),
-            xytext=(x[peak_idx], dept_q.values[peak_idx] + dept_q.values.max() * 0.08),
-            ha="center", fontsize=9, color=color,
-            arrowprops=dict(arrowstyle="-", color=color, lw=1),
+            xycoords="data",
+            xytext=(0.97, 0.92),
+            textcoords="axes fraction",
+            ha="right", va="top", fontsize=9, color=color,
+            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec=color, alpha=0.8),
+            arrowprops=dict(arrowstyle="->", color=color, lw=1.2),
         )
 
         ax.set_xticks(x)
