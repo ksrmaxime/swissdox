@@ -454,6 +454,28 @@ def fig_04b_category_journal(df: pd.DataFrame, outdir: Path, top_n: int = 15) ->
     fig.suptitle(f"Stance by journal per category — journals in same order as fig 03 (top {top_n})", fontsize=13)
     save(fig, outdir / "04b_category_by_journal.png")
 
+    # Stats : proportion de chaque stance par journal × catégorie
+    rows = []
+    for cat in cats_present:
+        sub_cat = sub[sub["primary_category"] == cat]
+        grp = (
+            sub_cat.groupby(["medium_name", "STANCE"])
+            .size()
+            .unstack(fill_value=0)
+            .reindex(index=fixed_order, columns=STANCES, fill_value=0)
+        )
+        tots = grp.sum(axis=1)
+        pct  = grp.div(tots.replace(0, np.nan), axis=0).fillna(0) * 100
+        for journal in fixed_order:
+            rows.append({
+                "category":   cat,
+                "journal":    journal,
+                "n_total":    int(tots.get(journal, 0)),
+                **{f"{s}_pct": round(pct.loc[journal, s], 2) if journal in pct.index else 0.0
+                   for s in STANCES},
+            })
+    pd.DataFrame(rows).to_csv(outdir / "stats" / "04b_category_by_journal.csv", index=False)
+
 
 # ── Figure 04c — Category × language ──────────────────────────────────────────
 
