@@ -64,7 +64,7 @@ CATEGORIES: dict[str, list[str]] = {
         "Bürokraten", "Beamte", "Staatsangestellte",
         "Bureaucrates", "Fonctionnaires", "Employés de l'État",
     ],
-    "Bern Executive": [
+    "National Executive": [
         "Berner Verwaltung", "Bundesverwaltung",
         "Départements fédéraux", "Offices fédéraux",
     ],
@@ -106,7 +106,7 @@ CATEGORIES: dict[str, list[str]] = {
 }
 
 DEPT_CATEGORIES  = [c for c in CATEGORIES if c.startswith("Dept:")]
-MAIN_CATEGORIES  = ["Bureaucracy", "Public Administration", "Civil Servants", "Bern Executive"] + DEPT_CATEGORIES
+MAIN_CATEGORIES  = ["Bureaucracy", "Public Administration", "Civil Servants", "National Executive"] + DEPT_CATEGORIES
 
 # Assign colours per category
 _CMAP_MAIN = plt.cm.tab10.colors
@@ -116,7 +116,7 @@ CATEGORY_COLORS: dict[str, str] = {
 CATEGORY_COLORS["Other"] = "#aaaaaa"
 
 # Priority order for primary category (departments first)
-_PRIORITY = DEPT_CATEGORIES + ["Bern Executive", "Civil Servants", "Public Administration", "Bureaucracy"]
+_PRIORITY = DEPT_CATEGORIES + ["National Executive", "Civil Servants", "Public Administration", "Bureaucracy"]
 
 # Lookup sets (lower-cased for matching)
 _CAT_KW_LOWER: dict[str, set[str]] = {
@@ -415,6 +415,11 @@ def fig_04b_category_journal(df: pd.DataFrame, outdir: Path, top_n: int = 15) ->
     top_journals = df["medium_name"].value_counts().head(top_n).index
     sub = df[df["medium_name"].isin(top_journals)].copy()
 
+    # Fixed sort order based on overall CRITIC % (same as fig 03) — consistent across all panels
+    overall_grp  = sub.groupby(["medium_name", "STANCE"]).size().unstack(fill_value=0).reindex(columns=STANCES, fill_value=0)
+    overall_pct  = overall_grp.div(overall_grp.sum(axis=1), axis=0) * 100
+    fixed_order  = overall_pct["CRITIC"].sort_values(ascending=True).index.tolist()
+
     cats_present = [c for c in MAIN_CATEGORIES if c in sub["primary_category"].unique()]
     n_cats = len(cats_present)
     fig, axes = plt.subplots(1, n_cats, figsize=(6 * n_cats, 8), sharey=True)
@@ -427,11 +432,10 @@ def fig_04b_category_journal(df: pd.DataFrame, outdir: Path, top_n: int = 15) ->
             sub_cat.groupby(["medium_name", "STANCE"])
             .size()
             .unstack(fill_value=0)
-            .reindex(columns=STANCES, fill_value=0)
+            .reindex(index=fixed_order, columns=STANCES, fill_value=0)
         )
         tots = grp.sum(axis=1)
-        pct  = grp.div(tots, axis=0) * 100
-        pct  = pct.sort_values("CRITIC", ascending=True)
+        pct  = grp.div(tots.replace(0, np.nan), axis=0).fillna(0) * 100
 
         y    = np.arange(len(pct))
         left = np.zeros(len(pct))
@@ -447,7 +451,7 @@ def fig_04b_category_journal(df: pd.DataFrame, outdir: Path, top_n: int = 15) ->
         if i == 0:
             axes[i].legend(fontsize=7)
 
-    fig.suptitle(f"Stance by journal per category (top {top_n} journals)", fontsize=13)
+    fig.suptitle(f"Stance by journal per category — journals in same order as fig 03 (top {top_n})", fontsize=13)
     save(fig, outdir / "04b_category_by_journal.png")
 
 
