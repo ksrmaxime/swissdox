@@ -681,7 +681,7 @@ def _quarterly_by_group(
 
     # ── C : heatmap ───────────────────────────────────────────────────────────
     heat = pd.DataFrame(
-        {cat: (
+        {cat_labels[cat]: (
             sub[sub["primary_category"] == cat]
             .groupby("year_q").size()
             .reindex(all_quarters, fill_value=0)
@@ -689,7 +689,6 @@ def _quarterly_by_group(
         ).fillna(0).values
         for cat in cats_present},
         index=all_quarters,
-        columns=[cat_labels[c] for c in cats_present],
     )
     cmap = _HEATMAP_COLORS.get(stance, "Blues")
     fig, ax = plt.subplots(figsize=(max(10, len(cats_present) * 1.5), max(8, len(all_quarters) * 0.35)))
