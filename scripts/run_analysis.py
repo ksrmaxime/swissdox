@@ -740,6 +740,91 @@ def fig_12_allcat_neutral_quarterly(df: pd.DataFrame, outdir: Path) -> None:
     _quarterly_by_group(df, outdir, "NEUTRAL_STATEMENT", MAIN_CATEGORIES, "12")
 
 
+# ── Figures 13-14 — Proportion of mentions by target (all stances) ────────────
+
+def _mention_share_fig(
+    df: pd.DataFrame,
+    outdir: Path,
+    categories: list[str],
+    fig_prefix: str,
+    title: str,
+    short_label_fn=None,
+) -> None:
+    if short_label_fn is None:
+        short_label_fn = lambda c: c
+
+    sub = df[df["primary_category"].isin(categories)].copy()
+    counts = (
+        sub["primary_category"]
+        .value_counts()
+        .reindex(categories, fill_value=0)
+    )
+    counts = counts[counts > 0]
+    if counts.empty:
+        print(f"  [skip] no rows for {fig_prefix}", flush=True)
+        return
+
+    labels  = [short_label_fn(c) for c in counts.index]
+    colors  = [CATEGORY_COLORS.get(c, "#aaa") for c in counts.index]
+    total   = counts.sum()
+    pcts    = counts / total * 100
+
+    fig, (ax_pie, ax_bar) = plt.subplots(1, 2, figsize=(16, max(6, len(counts) * 0.5)))
+
+    # ── Pie ───────────────────────────────────────────────────────────────────
+    _, _, autotexts = ax_pie.pie(
+        counts.values,
+        labels=labels,
+        colors=colors,
+        autopct=lambda p: f"{p:.1f}%" if p >= 2 else "",
+        startangle=140,
+        pctdistance=0.75,
+    )
+    for t in autotexts:
+        t.set_fontsize(8)
+    ax_pie.set_title(f"{title}\n(n={total:,})", fontsize=12)
+
+    # ── Horizontal bar ────────────────────────────────────────────────────────
+    y    = np.arange(len(pcts))
+    bars = ax_bar.barh(y, pcts.values, color=colors, height=0.65)
+    ax_bar.set_yticks(y)
+    ax_bar.set_yticklabels(labels, fontsize=9)
+    ax_bar.set_xlabel("Share of total mentions (%)")
+    ax_bar.xaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
+    ax_bar.set_title("Share of mentions per category", fontsize=12)
+    for bar, val, n in zip(bars, pcts.values, counts.values):
+        ax_bar.text(bar.get_width() + 0.3, bar.get_y() + bar.get_height() / 2,
+                    f"{val:.1f}%  (n={n:,})", va="center", fontsize=8)
+    ax_bar.set_xlim(0, pcts.max() * 1.35)
+
+    save(fig, outdir / f"{fig_prefix}_mention_share.png")
+
+    out = pd.DataFrame({"category": labels, "count": counts.values, "share_pct": pcts.round(2).values})
+    out.to_csv(outdir / "stats" / f"{fig_prefix}_mention_share.csv", index=False)
+    print(f"  → {fig_prefix} ({len(counts)} categories, n={total:,})", flush=True)
+
+
+def fig_13_mention_share_all(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 13] Mention share — all categories", flush=True)
+    _mention_share_fig(
+        df, outdir,
+        categories=MAIN_CATEGORIES,
+        fig_prefix="13",
+        title="Share of total mentions by keyword category (all stances)",
+    )
+
+
+def fig_14_mention_share_depts(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 14] Mention share — federal departments only", flush=True)
+    _mention_share_fig(
+        df, outdir,
+        categories=DEPT_CATEGORIES,
+        fig_prefix="14",
+        title="Share of total mentions by federal department (all stances)",
+        short_label_fn=lambda c: c.replace("Dept: ", ""),
+    )
+
+
 # ── Summary stats ──────────────────────────────────────────────────────────────
 
 def save_global_stats(df: pd.DataFrame, outdir: Path) -> None:
@@ -785,6 +870,8 @@ def main() -> int:
     fig_10_allcat_critic_quarterly(df, outdir)
     fig_11_allcat_praise_quarterly(df, outdir)
     fig_12_allcat_neutral_quarterly(df, outdir)
+    fig_13_mention_share_all(df, outdir)
+    fig_14_mention_share_depts(df, outdir)
 
     print(f"\n[analysis] Done. Results in {outdir}", flush=True)
     return 0
