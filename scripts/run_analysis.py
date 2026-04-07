@@ -594,100 +594,151 @@ def fig_06_critic_departments(df: pd.DataFrame, outdir: Path) -> None:
     out.round(2).to_csv(outdir / "stats" / "06_critic_stacked_departments.csv")
 
 
-# ── Figure 07 — Critics par département × trimestre ───────────────────────────
+# ── Generic quarterly analysis (stance × category group) ──────────────────────
 
-def fig_07_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
-    print("[fig 07] Dept critics by quarter", flush=True)
-    dept_critics = df[(df["STANCE"] == "CRITIC") & (df["primary_category"].isin(DEPT_CATEGORIES))].copy()
+_HEATMAP_COLORS = {
+    "CRITIC":             "YlOrRd",
+    "PRAISE":             "YlGn",
+    "NEUTRAL_STATEMENT":  "YlGnBu",
+}
 
-    if dept_critics.empty:
-        print("  [skip] no critic rows for departments", flush=True)
+
+def _quarterly_by_group(
+    df: pd.DataFrame,
+    outdir: Path,
+    stance: str,
+    categories: list[str],
+    fig_prefix: str,
+    short_label_fn=None,
+) -> None:
+    """
+    Produce 3 quarterly figures (stacked, lines, heatmap) for a given
+    stance × list of categories.
+    """
+    if short_label_fn is None:
+        short_label_fn = lambda c: c.replace("Dept: ", "")
+
+    stance_label = STANCE_LABELS[stance]
+    sub = df[(df["STANCE"] == stance) & (df["primary_category"].isin(categories))].copy()
+
+    cats_present = [c for c in categories if c in sub["primary_category"].unique()]
+    if not cats_present:
+        print(f"  [skip] no {stance_label} rows for given categories", flush=True)
         return
 
-    depts_present = [c for c in DEPT_CATEGORIES if c in dept_critics["primary_category"].unique()]
-    dept_labels   = {c: c.replace("Dept: ", "") for c in depts_present}
-
-    # ── ordered quarter index ──────────────────────────────────────────────────
+    cat_labels   = {c: short_label_fn(c) for c in cats_present}
     all_quarters = sorted(df["year_q"].unique(), key=lambda s: (int(s[:4]), int(s[-1])))
     total_all_q  = df.groupby("year_q")["STANCE"].count().reindex(all_quarters, fill_value=0)
 
-    # ── Fig A : stacked area % par trimestre ──────────────────────────────────
     pivot = (
-        dept_critics.groupby(["year_q", "primary_category"])
+        sub.groupby(["year_q", "primary_category"])
         .size()
         .unstack(fill_value=0)
-        .reindex(index=all_quarters, columns=depts_present, fill_value=0)
+        .reindex(index=all_quarters, columns=cats_present, fill_value=0)
     )
-    total_dept_q   = pivot.sum(axis=1)
-    dept_critic_pct = (total_dept_q / total_all_q * 100).fillna(0)
-    pivot_pct = pivot.div(total_dept_q.replace(0, np.nan), axis=0).fillna(0) * dept_critic_pct.values[:, None]
+    total_group_q  = pivot.sum(axis=1)
+    group_pct      = (total_group_q / total_all_q * 100).fillna(0)
+    pivot_pct      = pivot.div(total_group_q.replace(0, np.nan), axis=0).fillna(0) * group_pct.values[:, None]
 
     x      = np.arange(len(all_quarters))
-    colors = [CATEGORY_COLORS.get(c, "#aaa") for c in depts_present]
+    colors = [CATEGORY_COLORS.get(c, "#aaa") for c in cats_present]
 
+    # ── A : stacked area ──────────────────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(max(14, len(all_quarters) * 0.55), 6))
-    ax.stackplot(x, [pivot_pct[c] for c in depts_present],
-                 labels=[dept_labels[c] for c in depts_present],
+    ax.stackplot(x, [pivot_pct[c] for c in cats_present],
+                 labels=[cat_labels[c] for c in cats_present],
                  colors=colors, alpha=0.85)
-    ax.plot(x, dept_critic_pct.values, color="black", linewidth=2,
-            marker="o", markersize=4, label="Total dept. CRITIC (%)", zorder=5)
-
+    ax.plot(x, group_pct.values, color="black", linewidth=2,
+            marker="o", markersize=4, label=f"Total {stance_label} (%)", zorder=5)
     ax.set_xticks(x)
     ax.set_xticklabels(all_quarters, rotation=45, ha="right", fontsize=7)
-    ax.set_title("CRITIC targeting federal departments by quarter (%) — stacked breakdown", fontsize=13)
+    ax.set_title(f"{stance_label} by quarter (%) — stacked breakdown by category", fontsize=13)
     ax.set_xlabel("Quarter")
     ax.set_ylabel("Share of all sentences (%)")
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
-    ax.legend(loc="upper left", fontsize=8)
-    save(fig, outdir / "07a_dept_critic_quarterly_stacked.png")
+    ax.legend(loc="upper left", fontsize=8, ncol=2)
+    save(fig, outdir / f"{fig_prefix}a_quarterly_stacked.png")
 
-    # ── Fig B : une ligne par département (% sur toutes les phrases) ──────────
+    # ── B : lines ─────────────────────────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(max(14, len(all_quarters) * 0.55), 6))
-    for dept in depts_present:
-        dept_q_pct = (
-            dept_critics[dept_critics["primary_category"] == dept]
+    for cat in cats_present:
+        cat_q_pct = (
+            sub[sub["primary_category"] == cat]
             .groupby("year_q").size()
             .reindex(all_quarters, fill_value=0)
             / total_all_q * 100
         ).fillna(0)
-        ax.plot(x, dept_q_pct.values, marker="o", markersize=4, linewidth=1.8,
-                label=dept_labels[dept], color=CATEGORY_COLORS.get(dept, "#aaa"))
-
+        ax.plot(x, cat_q_pct.values, marker="o", markersize=4, linewidth=1.8,
+                label=cat_labels[cat], color=CATEGORY_COLORS.get(cat, "#aaa"))
     ax.set_xticks(x)
     ax.set_xticklabels(all_quarters, rotation=45, ha="right", fontsize=7)
-    ax.set_title("CRITIC per federal department by quarter (% of all sentences)", fontsize=13)
+    ax.set_title(f"{stance_label} per category by quarter (% of all sentences)", fontsize=13)
     ax.set_xlabel("Quarter")
     ax.set_ylabel("Share of all sentences (%)")
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
     ax.legend(fontsize=8, ncol=2)
-    save(fig, outdir / "07b_dept_critic_quarterly_lines.png")
+    save(fig, outdir / f"{fig_prefix}b_quarterly_lines.png")
 
-    # ── Fig C : heatmap département × trimestre ───────────────────────────────
+    # ── C : heatmap ───────────────────────────────────────────────────────────
     heat = pd.DataFrame(
-        {dept: (
-            dept_critics[dept_critics["primary_category"] == dept]
+        {cat: (
+            sub[sub["primary_category"] == cat]
             .groupby("year_q").size()
             .reindex(all_quarters, fill_value=0)
             / total_all_q * 100
         ).fillna(0).values
-        for dept in depts_present},
+        for cat in cats_present},
         index=all_quarters,
-        columns=[dept_labels[d] for d in depts_present],
+        columns=[cat_labels[c] for c in cats_present],
     )
-
-    fig, ax = plt.subplots(figsize=(max(10, len(depts_present) * 1.5), max(8, len(all_quarters) * 0.35)))
-    im = ax.imshow(heat.values, aspect="auto", cmap="YlOrRd", interpolation="nearest")
+    cmap = _HEATMAP_COLORS.get(stance, "Blues")
+    fig, ax = plt.subplots(figsize=(max(10, len(cats_present) * 1.5), max(8, len(all_quarters) * 0.35)))
+    im = ax.imshow(heat.values, aspect="auto", cmap=cmap, interpolation="nearest")
     plt.colorbar(im, ax=ax, label="% of all sentences")
     ax.set_xticks(np.arange(len(heat.columns)))
     ax.set_xticklabels(heat.columns, rotation=30, ha="right", fontsize=9)
     ax.set_yticks(np.arange(len(heat.index)))
     ax.set_yticklabels(heat.index, fontsize=7)
-    ax.set_title("Heatmap: CRITIC intensity per department × quarter", fontsize=13)
-    save(fig, outdir / "07c_dept_critic_quarterly_heatmap.png")
+    ax.set_title(f"Heatmap: {stance_label} intensity per category × quarter", fontsize=13)
+    save(fig, outdir / f"{fig_prefix}c_quarterly_heatmap.png")
 
-    # ── Stats ──────────────────────────────────────────────────────────────────
-    heat.round(3).to_csv(outdir / "stats" / "07_dept_critic_quarterly.csv")
-    print(f"  → 07a/b/c saved ({len(all_quarters)} quarters × {len(depts_present)} depts)", flush=True)
+    heat.round(3).to_csv(outdir / "stats" / f"{fig_prefix}_quarterly.csv")
+    print(f"  → {fig_prefix}a/b/c ({len(all_quarters)} quarters × {len(cats_present)} categories)", flush=True)
+
+
+# ── Figures 07-12 — Quarterly analyses ────────────────────────────────────────
+
+def fig_07_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 07] Dept × CRITIC × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "CRITIC", DEPT_CATEGORIES, "07",
+                        short_label_fn=lambda c: c.replace("Dept: ", ""))
+
+
+def fig_08_dept_praise_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 08] Dept × PRAISE × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "PRAISE", DEPT_CATEGORIES, "08",
+                        short_label_fn=lambda c: c.replace("Dept: ", ""))
+
+
+def fig_09_dept_neutral_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 09] Dept × NEUTRAL × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "NEUTRAL_STATEMENT", DEPT_CATEGORIES, "09",
+                        short_label_fn=lambda c: c.replace("Dept: ", ""))
+
+
+def fig_10_allcat_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 10] All categories × CRITIC × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "CRITIC", MAIN_CATEGORIES, "10")
+
+
+def fig_11_allcat_praise_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 11] All categories × PRAISE × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "PRAISE", MAIN_CATEGORIES, "11")
+
+
+def fig_12_allcat_neutral_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 12] All categories × NEUTRAL × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "NEUTRAL_STATEMENT", MAIN_CATEGORIES, "12")
 
 
 # ── Summary stats ──────────────────────────────────────────────────────────────
@@ -730,6 +781,11 @@ def main() -> int:
     fig_05_critic_stacked(df, outdir)
     fig_06_critic_departments(df, outdir)
     fig_07_dept_critic_quarterly(df, outdir)
+    fig_08_dept_praise_quarterly(df, outdir)
+    fig_09_dept_neutral_quarterly(df, outdir)
+    fig_10_allcat_critic_quarterly(df, outdir)
+    fig_11_allcat_praise_quarterly(df, outdir)
+    fig_12_allcat_neutral_quarterly(df, outdir)
 
     print(f"\n[analysis] Done. Results in {outdir}", flush=True)
     return 0
