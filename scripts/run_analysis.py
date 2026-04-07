@@ -59,7 +59,10 @@ CATEGORIES: dict[str, list[str]] = {
         "Administration publique", "Administration fédérale", "Administration centrale",
         "Autorités administratives", "Services de l'État", "Services publics",
         "Fonction publique", "Autorités cantonales", "Organes de l'État",
-        "Beamte", "Staatsangestellte", "Fonctionnaires", "Employés de l'État",
+    ],
+    "Civil Servants": [
+        "Bürokraten", "Beamte", "Staatsangestellte",
+        "Bureaucrates", "Fonctionnaires", "Employés de l'État",
     ],
     "Bern Executive": [
         "Berner Verwaltung", "Bundesverwaltung",
@@ -103,7 +106,7 @@ CATEGORIES: dict[str, list[str]] = {
 }
 
 DEPT_CATEGORIES  = [c for c in CATEGORIES if c.startswith("Dept:")]
-MAIN_CATEGORIES  = ["Bureaucracy", "Public Administration", "Bern Executive"] + DEPT_CATEGORIES
+MAIN_CATEGORIES  = ["Bureaucracy", "Public Administration", "Civil Servants", "Bern Executive"] + DEPT_CATEGORIES
 
 # Assign colours per category
 _CMAP_MAIN = plt.cm.tab10.colors
@@ -113,7 +116,7 @@ CATEGORY_COLORS: dict[str, str] = {
 CATEGORY_COLORS["Other"] = "#aaaaaa"
 
 # Priority order for primary category (departments first)
-_PRIORITY = DEPT_CATEGORIES + ["Bern Executive", "Public Administration", "Bureaucracy"]
+_PRIORITY = DEPT_CATEGORIES + ["Bern Executive", "Civil Servants", "Public Administration", "Bureaucracy"]
 
 # Lookup sets (lower-cased for matching)
 _CAT_KW_LOWER: dict[str, set[str]] = {
@@ -171,9 +174,13 @@ def load(path: str) -> pd.DataFrame:
     df = df[df["STANCE"].isin(STANCES)].copy()
     print(f"[analysis] {len(df):,} rows with valid STANCE", flush=True)
 
-    df["year"] = pd.to_datetime(df["pubtime"], errors="coerce").dt.year
+    dt = pd.to_datetime(df["pubtime"], errors="coerce")
+    df["year"]    = dt.dt.year
+    df["quarter"] = dt.dt.quarter
     df = df.dropna(subset=["year"])
-    df["year"] = df["year"].astype(int)
+    df["year"]    = df["year"].astype(int)
+    df["quarter"] = df["quarter"].astype(int)
+    df["year_q"]  = df["year"].astype(str) + "-Q" + df["quarter"].astype(str)
 
     df["primary_category"] = df["matched_keywords"].apply(assign_primary_category)
     df["all_categories"]   = df["matched_keywords"].apply(get_all_categories)
@@ -181,7 +188,43 @@ def load(path: str) -> pd.DataFrame:
     if "language" in df.columns:
         df["language"] = df["language"].astype(str).str.strip().str.lower()
 
+    if "medium_name" in df.columns:
+        df["medium_name"] = df["medium_name"].apply(_normalize_journal)
+
     return df
+
+
+# ── Journal normalisation ──────────────────────────────────────────────────────
+
+_JOURNAL_MAP: dict[str, str] = {
+    # NZZ
+    "nzz online":            "NZZ",
+    "nzz am sonntag":        "NZZ",
+    "neue zürcher zeitung":  "NZZ",
+    "nzz.ch":                "NZZ",
+    # Le Temps
+    "le temps":              "Le Temps",
+    "letemps.ch":            "Le Temps",
+    # Tages-Anzeiger
+    "tages-anzeiger":        "Tages-Anzeiger",
+    "tagesanzeiger.ch":      "Tages-Anzeiger",
+    "newsnet / tages-anzeiger": "Tages-Anzeiger",
+    # 24 heures
+    "newsnet / 24 heures":   "24 heures",
+    "24 heures":             "24 heures",
+    "24heures.ch":           "24 heures",
+    # 20 Minuten
+    "20 minuten online":     "20 Minuten",
+    # 20 Minutes
+    "20 minutes":            "20 Minutes",
+    "20 minutes online":     "20 Minutes",
+}
+
+
+def _normalize_journal(name: str) -> str:
+    if pd.isna(name):
+        return name
+    return _JOURNAL_MAP.get(str(name).strip().lower(), str(name).strip())
 
 
 # ── Figure 01 — Temporal evolution of 3 stances ───────────────────────────────
@@ -461,7 +504,7 @@ def fig_04c_category_language(df: pd.DataFrame, outdir: Path) -> None:
 # ── Figure 05 — Critic curve + stacked keyword categories ─────────────────────
 
 def fig_05_critic_stacked(df: pd.DataFrame, outdir: Path) -> None:
-    print("[fig 05] Critic stacked by category", flush=True)
+    print("[fig 05] Critic stacked by category (%)", flush=True)
     critics = df[df["STANCE"] == "CRITIC"].copy()
 
     cats_present = [c for c in MAIN_CATEGORIES if c in critics["primary_category"].unique()]
@@ -473,73 +516,178 @@ def fig_05_critic_stacked(df: pd.DataFrame, outdir: Path) -> None:
         .reindex(columns=cats_present, fill_value=0)
     )
     total_critic = pivot.sum(axis=1)
+    # proportion of CRITIC among all stances per year
+    total_all = df.groupby("year")["STANCE"].count()
+    critic_pct = (total_critic / total_all * 100).reindex(pivot.index, fill_value=0)
+    # category share within critics (%)
+    pivot_pct = pivot.div(total_critic, axis=0) * critic_pct.values[:, None]
 
     fig, ax = plt.subplots(figsize=(12, 6))
-
     colors = [CATEGORY_COLORS.get(c, "#aaa") for c in cats_present]
     ax.stackplot(
-        pivot.index,
-        [pivot[c] for c in cats_present],
+        pivot_pct.index,
+        [pivot_pct[c] for c in cats_present],
         labels=cats_present,
         colors=colors,
         alpha=0.85,
     )
-    ax.plot(pivot.index, total_critic, color="black", linewidth=2.5,
-            marker="o", markersize=5, label="Total CRITIC", zorder=5)
+    ax.plot(pivot_pct.index, critic_pct, color="black", linewidth=2.5,
+            marker="o", markersize=5, label="Total CRITIC (%)", zorder=5)
 
-    ax.set_title("CRITIC sentences over time — breakdown by keyword category", fontsize=13)
+    ax.set_title("CRITIC share over time (%) — breakdown by keyword category", fontsize=13)
     ax.set_xlabel("Year")
-    ax.set_ylabel("Number of CRITIC sentences")
+    ax.set_ylabel("Share of all sentences (%)")
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
     ax.legend(loc="upper left", fontsize=8, ncol=2)
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
 
     save(fig, outdir / "05_critic_stacked_categories.png")
-    pivot["TOTAL"] = total_critic
-    pivot.to_csv(outdir / "stats" / "05_critic_stacked_categories.csv")
+    out = pivot_pct.copy()
+    out["TOTAL_CRITIC_PCT"] = critic_pct
+    out.round(2).to_csv(outdir / "stats" / "05_critic_stacked_categories.csv")
 
 
 # ── Figure 06 — Critic curve + stacked federal departments only ────────────────
 
 def fig_06_critic_departments(df: pd.DataFrame, outdir: Path) -> None:
-    print("[fig 06] Critic stacked by department", flush=True)
-    critics = df[(df["STANCE"] == "CRITIC") & (df["primary_category"].isin(DEPT_CATEGORIES))].copy()
+    print("[fig 06] Critic stacked by department (%)", flush=True)
+    dept_critics = df[(df["STANCE"] == "CRITIC") & (df["primary_category"].isin(DEPT_CATEGORIES))].copy()
 
-    if critics.empty:
+    if dept_critics.empty:
         print("  [skip] no critic rows for departments", flush=True)
         return
 
-    depts_present = [c for c in DEPT_CATEGORIES if c in critics["primary_category"].unique()]
+    depts_present = [c for c in DEPT_CATEGORIES if c in dept_critics["primary_category"].unique()]
 
     pivot = (
-        critics.groupby(["year", "primary_category"])
+        dept_critics.groupby(["year", "primary_category"])
         .size()
         .unstack(fill_value=0)
         .reindex(columns=depts_present, fill_value=0)
     )
     total_dept_critic = pivot.sum(axis=1)
+    # proportion of dept-critic among all stances per year
+    total_all = df.groupby("year")["STANCE"].count()
+    dept_critic_pct = (total_dept_critic / total_all * 100).reindex(pivot.index, fill_value=0)
+    pivot_pct = pivot.div(total_dept_critic, axis=0) * dept_critic_pct.values[:, None]
 
     fig, ax = plt.subplots(figsize=(12, 6))
-
     colors = [CATEGORY_COLORS.get(c, "#aaa") for c in depts_present]
     ax.stackplot(
-        pivot.index,
-        [pivot[c] for c in depts_present],
+        pivot_pct.index,
+        [pivot_pct[c] for c in depts_present],
         labels=[c.replace("Dept: ", "") for c in depts_present],
         colors=colors,
         alpha=0.85,
     )
-    ax.plot(pivot.index, total_dept_critic, color="black", linewidth=2.5,
-            marker="o", markersize=5, label="Total dept. CRITIC", zorder=5)
+    ax.plot(pivot_pct.index, dept_critic_pct, color="black", linewidth=2.5,
+            marker="o", markersize=5, label="Total dept. CRITIC (%)", zorder=5)
 
-    ax.set_title("CRITIC sentences targeting federal departments — breakdown by department", fontsize=13)
+    ax.set_title("CRITIC targeting federal departments (%) — breakdown by department", fontsize=13)
     ax.set_xlabel("Year")
-    ax.set_ylabel("Number of CRITIC sentences")
+    ax.set_ylabel("Share of all sentences (%)")
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
     ax.legend(loc="upper left", fontsize=9)
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
 
     save(fig, outdir / "06_critic_stacked_departments.png")
-    pivot["TOTAL"] = total_dept_critic
-    pivot.to_csv(outdir / "stats" / "06_critic_stacked_departments.csv")
+    out = pivot_pct.copy()
+    out["TOTAL_DEPT_CRITIC_PCT"] = dept_critic_pct
+    out.round(2).to_csv(outdir / "stats" / "06_critic_stacked_departments.csv")
+
+
+# ── Figure 07 — Critics par département × trimestre ───────────────────────────
+
+def fig_07_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 07] Dept critics by quarter", flush=True)
+    dept_critics = df[(df["STANCE"] == "CRITIC") & (df["primary_category"].isin(DEPT_CATEGORIES))].copy()
+
+    if dept_critics.empty:
+        print("  [skip] no critic rows for departments", flush=True)
+        return
+
+    depts_present = [c for c in DEPT_CATEGORIES if c in dept_critics["primary_category"].unique()]
+    dept_labels   = {c: c.replace("Dept: ", "") for c in depts_present}
+
+    # ── ordered quarter index ──────────────────────────────────────────────────
+    all_quarters = sorted(df["year_q"].unique(), key=lambda s: (int(s[:4]), int(s[-1])))
+    total_all_q  = df.groupby("year_q")["STANCE"].count().reindex(all_quarters, fill_value=0)
+
+    # ── Fig A : stacked area % par trimestre ──────────────────────────────────
+    pivot = (
+        dept_critics.groupby(["year_q", "primary_category"])
+        .size()
+        .unstack(fill_value=0)
+        .reindex(index=all_quarters, columns=depts_present, fill_value=0)
+    )
+    total_dept_q   = pivot.sum(axis=1)
+    dept_critic_pct = (total_dept_q / total_all_q * 100).fillna(0)
+    pivot_pct = pivot.div(total_dept_q.replace(0, np.nan), axis=0).fillna(0) * dept_critic_pct.values[:, None]
+
+    x      = np.arange(len(all_quarters))
+    colors = [CATEGORY_COLORS.get(c, "#aaa") for c in depts_present]
+
+    fig, ax = plt.subplots(figsize=(max(14, len(all_quarters) * 0.55), 6))
+    ax.stackplot(x, [pivot_pct[c] for c in depts_present],
+                 labels=[dept_labels[c] for c in depts_present],
+                 colors=colors, alpha=0.85)
+    ax.plot(x, dept_critic_pct.values, color="black", linewidth=2,
+            marker="o", markersize=4, label="Total dept. CRITIC (%)", zorder=5)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(all_quarters, rotation=45, ha="right", fontsize=7)
+    ax.set_title("CRITIC targeting federal departments by quarter (%) — stacked breakdown", fontsize=13)
+    ax.set_xlabel("Quarter")
+    ax.set_ylabel("Share of all sentences (%)")
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
+    ax.legend(loc="upper left", fontsize=8)
+    save(fig, outdir / "07a_dept_critic_quarterly_stacked.png")
+
+    # ── Fig B : une ligne par département (% sur toutes les phrases) ──────────
+    fig, ax = plt.subplots(figsize=(max(14, len(all_quarters) * 0.55), 6))
+    for dept in depts_present:
+        dept_q_pct = (
+            dept_critics[dept_critics["primary_category"] == dept]
+            .groupby("year_q").size()
+            .reindex(all_quarters, fill_value=0)
+            / total_all_q * 100
+        ).fillna(0)
+        ax.plot(x, dept_q_pct.values, marker="o", markersize=4, linewidth=1.8,
+                label=dept_labels[dept], color=CATEGORY_COLORS.get(dept, "#aaa"))
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(all_quarters, rotation=45, ha="right", fontsize=7)
+    ax.set_title("CRITIC per federal department by quarter (% of all sentences)", fontsize=13)
+    ax.set_xlabel("Quarter")
+    ax.set_ylabel("Share of all sentences (%)")
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
+    ax.legend(fontsize=8, ncol=2)
+    save(fig, outdir / "07b_dept_critic_quarterly_lines.png")
+
+    # ── Fig C : heatmap département × trimestre ───────────────────────────────
+    heat = pd.DataFrame(
+        {dept: (
+            dept_critics[dept_critics["primary_category"] == dept]
+            .groupby("year_q").size()
+            .reindex(all_quarters, fill_value=0)
+            / total_all_q * 100
+        ).fillna(0).values
+        for dept in depts_present},
+        index=all_quarters,
+        columns=[dept_labels[d] for d in depts_present],
+    )
+
+    fig, ax = plt.subplots(figsize=(max(10, len(depts_present) * 1.5), max(8, len(all_quarters) * 0.35)))
+    im = ax.imshow(heat.values, aspect="auto", cmap="YlOrRd", interpolation="nearest")
+    plt.colorbar(im, ax=ax, label="% of all sentences")
+    ax.set_xticks(np.arange(len(heat.columns)))
+    ax.set_xticklabels(heat.columns, rotation=30, ha="right", fontsize=9)
+    ax.set_yticks(np.arange(len(heat.index)))
+    ax.set_yticklabels(heat.index, fontsize=7)
+    ax.set_title("Heatmap: CRITIC intensity per department × quarter", fontsize=13)
+    save(fig, outdir / "07c_dept_critic_quarterly_heatmap.png")
+
+    # ── Stats ──────────────────────────────────────────────────────────────────
+    heat.round(3).to_csv(outdir / "stats" / "07_dept_critic_quarterly.csv")
+    print(f"  → 07a/b/c saved ({len(all_quarters)} quarters × {len(depts_present)} depts)", flush=True)
 
 
 # ── Summary stats ──────────────────────────────────────────────────────────────
@@ -581,6 +729,7 @@ def main() -> int:
     fig_04c_category_language(df, outdir)
     fig_05_critic_stacked(df, outdir)
     fig_06_critic_departments(df, outdir)
+    fig_07_dept_critic_quarterly(df, outdir)
 
     print(f"\n[analysis] Done. Results in {outdir}", flush=True)
     return 0
