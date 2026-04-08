@@ -44,7 +44,7 @@ plt.rcParams.update({
 
 STANCES       = ["CRITIC", "PRAISE", "NEUTRAL_STATEMENT"]
 STANCE_COLORS = {"CRITIC": "#e74c3c", "PRAISE": "#2ecc71", "NEUTRAL_STATEMENT": "#3498db"}
-STANCE_LABELS = {"CRITIC": "Critic", "PRAISE": "Praise", "NEUTRAL_STATEMENT": "Neutral"}
+STANCE_LABELS = {"CRITIC": "Critique", "PRAISE": "Praise", "NEUTRAL_STATEMENT": "Neutral"}
 
 # ── Keyword → category mapping ─────────────────────────────────────────────────
 CATEGORIES: dict[str, list[str]] = {
@@ -342,7 +342,7 @@ def fig_03_journal(df: pd.DataFrame, outdir: Path, top_n: int = 25) -> None:
     ax.set_yticks(y)
     ax.set_yticklabels(pct.index, fontsize=8)
     ax.set_xlabel("Share (%)")
-    ax.set_title(f"Stance distribution by journal (top {top_n} by volume, sorted by Critic %)")
+    ax.set_title(f"Stance distribution by journal (top {top_n} by volume, sorted by Critique %)")
     ax.xaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
     ax.legend(loc="lower right")
 
@@ -558,9 +558,9 @@ def fig_05_critic_stacked(df: pd.DataFrame, outdir: Path) -> None:
         alpha=0.85,
     )
     ax.plot(pivot_pct.index, critic_pct, color="black", linewidth=2.5,
-            marker="o", markersize=5, label="Total CRITIC (%)", zorder=5)
+            marker="o", markersize=5, label="Total Critique (%)", zorder=5)
 
-    ax.set_title("CRITIC share over time (%) — breakdown by keyword category", fontsize=13)
+    ax.set_title("Critique share over time (%) — breakdown by keyword category", fontsize=13)
     ax.set_xlabel("Year")
     ax.set_ylabel("Share of all sentences (%)")
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
@@ -606,9 +606,9 @@ def fig_06_critic_departments(df: pd.DataFrame, outdir: Path) -> None:
         alpha=0.85,
     )
     ax.plot(pivot_pct.index, dept_critic_pct, color="black", linewidth=2.5,
-            marker="o", markersize=5, label="Total dept. CRITIC (%)", zorder=5)
+            marker="o", markersize=5, label="Total dept. Critique (%)", zorder=5)
 
-    ax.set_title("CRITIC targeting federal departments (%) — breakdown by department", fontsize=13)
+    ax.set_title("Critique targeting federal departments (%) — breakdown by department", fontsize=13)
     ax.set_xlabel("Year")
     ax.set_ylabel("Share of all sentences (%)")
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
@@ -815,7 +815,7 @@ def fig_15_per_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
 
         ax.set_xticks(x)
         ax.set_xticklabels(all_quarters, rotation=45, ha="right", fontsize=7)
-        ax.set_title(f"CRITIC — {label} — quarterly evolution (% of all sentences)", fontsize=13)
+        ax.set_title(f"Critique — {label} — quarterly evolution (% of all sentences)", fontsize=13)
         ax.set_xlabel("Quarter")
         ax.set_ylabel("Share of all sentences (%)")
         ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
