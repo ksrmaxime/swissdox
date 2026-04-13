@@ -818,8 +818,27 @@ def fig_15_per_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
         ax.set_title(f"Critique — {label} — quarterly evolution (% of all sentences)", fontsize=13)
         ax.set_xlabel("Quarter")
         ax.set_ylabel("Share of all sentences (%)")
-        ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
         ax.set_ylim(bottom=0)
+
+        # Adaptive y-axis: locator + formatter based on actual data range
+        y_max = dept_q.values.max()
+        if y_max <= 0:
+            pass
+        elif y_max < 0.3:
+            ax.yaxis.set_major_locator(mticker.MultipleLocator(0.05))
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.2f}%"))
+        elif y_max < 1.0:
+            ax.yaxis.set_major_locator(mticker.MultipleLocator(0.1))
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.1f}%"))
+        elif y_max < 3.0:
+            ax.yaxis.set_major_locator(mticker.MultipleLocator(0.5))
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.1f}%"))
+        elif y_max < 10.0:
+            ax.yaxis.set_major_locator(mticker.MultipleLocator(1.0))
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.1f}%"))
+        else:
+            ax.yaxis.set_major_locator(mticker.MaxNLocator(nbins=6, prune="both"))
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.0f}%"))
 
         fname = label.lower().replace(" ", "_").replace("/", "_")
         save(fig, dept_dir / f"15_{fname}_critic_quarterly.png")
