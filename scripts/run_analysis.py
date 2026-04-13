@@ -879,20 +879,7 @@ def _mention_share_fig(
     total   = counts.sum()
     pcts    = counts / total * 100
 
-    fig, (ax_pie, ax_bar) = plt.subplots(1, 2, figsize=(16, max(6, len(counts) * 0.5)))
-
-    # ── Pie ───────────────────────────────────────────────────────────────────
-    _, _, autotexts = ax_pie.pie(
-        counts.values,
-        labels=labels,
-        colors=colors,
-        autopct=lambda p: f"{p:.1f}%" if p >= 2 else "",
-        startangle=140,
-        pctdistance=0.75,
-    )
-    for t in autotexts:
-        t.set_fontsize(8)
-    ax_pie.set_title(f"{title}\n(n={total:,})", fontsize=12)
+    fig, ax_bar = plt.subplots(figsize=(10, max(4, len(counts) * 0.5)))
 
     # ── Horizontal bar ────────────────────────────────────────────────────────
     y    = np.arange(len(pcts))
@@ -901,7 +888,7 @@ def _mention_share_fig(
     ax_bar.set_yticklabels(labels, fontsize=9)
     ax_bar.set_xlabel("Share of total mentions (%)")
     ax_bar.xaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
-    ax_bar.set_title("Share of mentions per category", fontsize=12)
+    ax_bar.set_title(f"{title} (n={total:,})", fontsize=12)
     for bar, val, n in zip(bars, pcts.values, counts.values):
         ax_bar.text(bar.get_width() + 0.3, bar.get_y() + bar.get_height() / 2,
                     f"{val:.1f}%  (n={n:,})", va="center", fontsize=8)
