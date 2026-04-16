@@ -35,10 +35,10 @@ nvidia-smi -L || true
 MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
 DTYPE=bf16
 BACKEND=transformers
-MAX_ROWS=   # Max number of CRITIC rows sent to the LLM (leave empty to process all)
+MAX_ROWS=  # Max number of CRITIC rows sent to the LLM (leave empty to process all)
 
 # Input: output CSV produced by run_critic_pipeline (must contain STANCE column)
-INPUT_CSV="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/critic_stance_job${SLURM_JOB_ID}.csv"
+INPUT_CSV="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/PARP_RUN3_CRITIC_INPUT.csv"
 # If you want to point to a specific critic output, replace the line above with e.g.:
 # INPUT_CSV="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/critic_stance_job12345.csv"
 
@@ -54,7 +54,7 @@ python scripts/run_populism_pipeline.py \
   --batch_size 16 \
   --max_new_tokens 150 \
   --temperature 0.0 \
-  --max_rows "$MAX_ROWS"
+  ${MAX_ROWS:+--max_rows "$MAX_ROWS"}
 
 
 # --- Archive: outputs + prompt/config/sbatch ---
