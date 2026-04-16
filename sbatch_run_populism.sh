@@ -35,7 +35,7 @@ nvidia-smi -L || true
 MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
 DTYPE=bf16
 BACKEND=transformers
-MAX_ROWS=300   # Max number of CRITIC rows sent to the LLM (leave empty to process all)
+MAX_ROWS=   # Max number of CRITIC rows sent to the LLM (leave empty to process all)
 
 # Input: output CSV produced by run_critic_pipeline (must contain STANCE column)
 INPUT_CSV="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/critic_stance_job${SLURM_JOB_ID}.csv"

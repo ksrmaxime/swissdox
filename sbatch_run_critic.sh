@@ -49,7 +49,7 @@ python scripts/run_critic_pipeline.py \
   --batch_size 16 \
   --max_new_tokens 300 \
   --temperature 0.0 \
-  --max_rows "$MAX_ROWS"
+  ${MAX_ROWS:+--max_rows "$MAX_ROWS"}
 
 
 # --- Archive: outputs + prompt/config/sbatch ---
