@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #SBATCH --job-name=merge_critic
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=2
@@ -15,6 +15,7 @@
 set -euo pipefail
 
 module purge
+dcsrsoft use 20241118
 module load python/3.12.1
 
 WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO

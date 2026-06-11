@@ -1,4 +1,4 @@
-# run_populism_config.py
+# populism_config.py
 from __future__ import annotations
 
 import pandas as pd
@@ -21,7 +21,7 @@ def build_sentences_to_send_mask(
     if stance_col not in df.columns:
         raise KeyError(
             f"Missing stance column: {stance_col!r}. "
-            "Make sure the input file is the output of run_critic_pipeline."
+            "Make sure the input file is the output of 04_classify_stance."
         )
 
     has_sentence = df[sentence_col].notna() & (df[sentence_col].astype(str).str.strip() != "")

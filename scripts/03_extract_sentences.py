@@ -1,10 +1,10 @@
-# scripts/run_sentence_cutting.py
+# 03_extract_sentences.py
 """
-Sentence cutting step between sbatch_run_article.sh and sbatch_run_critic.sh.
+Sentence extraction step between sbatch_02_classify_articles.sh and sbatch_04_classify_stance.sh.
 
-Input  : output of run_article_pipeline.py (.csv or .parquet)
+Input  : output of 02_classify_articles.py (.csv or .parquet)
            must have columns: 'swiss', and a text column (default 'text', fallback 'lead')
-Output : critic_base.csv ready to be consumed by run_critic_pipeline.py
+Output : critic_base.csv ready to be consumed by 04_classify_stance.py
            columns: sentence_id, sentence, matched_keywords, + all article metadata
 """
 from __future__ import annotations
@@ -120,7 +120,7 @@ def process_chunk(chunk: pd.DataFrame, text_col: str, swiss_col: str, kw_pattern
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Cut articles into keyword-filtered sentences for run_critic_pipeline.py"
+        description="Cut articles into keyword-filtered sentences for 04_classify_stance.py"
     )
     ap.add_argument("--input", required=True,
                     help="Article pipeline output (.csv or .parquet)")

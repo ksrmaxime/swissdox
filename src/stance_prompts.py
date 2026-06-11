@@ -1,4 +1,4 @@
-# run_critic_prompts.py
+# stance_prompts.py
 from __future__ import annotations
 
 import pandas as pd

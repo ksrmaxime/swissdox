@@ -1,4 +1,4 @@
-# scripts/run_analysis.py
+# 08_analyze.py
 """
 Comprehensive stance analysis on the merged critic output.
 

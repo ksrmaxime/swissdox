@@ -1,4 +1,4 @@
-# run3_pipeline.py
+# 02_classify_articles.py
 import sys
 from pathlib import Path
 
@@ -7,35 +7,47 @@ sys.path.append(str(ROOT))
 
 import os
 import argparse
+import json
 import re
 import pandas as pd
 
 from src.client_src import TransformersClient, LLMConfig
 from src.runner_src import run_llm_dataframe, RunConfig
 
-import run3_prompts as run3_prompts
-from run3_config import build_sentences_to_send_mask
+import article_prompts as article_prompts
+from article_config import build_sentences_to_send_mask
 
 
-def parse_sp(raw: str) -> int | pd._libs.missing.NAType:
-    """
-    Expected output: exactly one token in {-1, 0, 1}.
-    Tolerant parsing: if there is noise, extract the last valid token.
-    """
+def parse_article_json(raw: str) -> dict:
     if raw is None:
-        return pd.NA
+        return {"swiss": pd.NA, "justification": pd.NA}
 
     s = str(raw).strip()
 
-    # Extract tokens -1, 0, 1 (as standalone)
-    matches = re.findall(r"(?<!\d)(-1|0|1)(?!\d)", s)
-    if not matches:
-        return pd.NA
+    try:
+        obj = json.loads(s)
+        swiss = str(obj.get("swiss", "")).strip().upper()
+        justification = str(obj.get("justification", "")).strip().lower()
 
-    tok = matches[-1]
-    if tok not in ("-1", "0", "1"):
-        return pd.NA
-    return int(tok)
+        if swiss not in {"YES", "NO"}:
+            swiss = pd.NA
+        if justification == "":
+            justification = pd.NA
+
+        return {"swiss": swiss, "justification": justification}
+    except Exception:
+        pass
+
+    swiss_match = re.search(r'"?swiss"?\s*:\s*"?(YES|NO)"?', s, flags=re.I)
+    justification_match = re.search(r'"?justification"?\s*:\s*"([^"\n\r,}]+)"?', s, flags=re.I)
+
+    swiss = swiss_match.group(1).upper() if swiss_match else pd.NA
+    justification = justification_match.group(1).strip().lower() if justification_match else pd.NA
+
+    if isinstance(justification, str) and justification == "":
+        justification = pd.NA
+
+    return {"swiss": swiss, "justification": justification}
 
 
 def main() -> int:
@@ -50,34 +62,30 @@ def main() -> int:
     ap.add_argument("--backend", default="transformers", choices=["vllm", "transformers"])
     ap.add_argument("--trust_remote_code", action="store_true")
 
-    ap.add_argument("--text_col", default="sentence")
-    ap.add_argument("--swiss_related_col", default="SWISS_RELATED")
-    ap.add_argument("--sentiment_col", default="SENTIMENT")  # sentiment toward public administration
+    ap.add_argument("--text_col", default="lead")
+    ap.add_argument("--decision_col", default="swiss")
 
     ap.add_argument("--batch_size", type=int, default=64)
     ap.add_argument("--temperature", type=float, default=0.0)
-    ap.add_argument("--max_new_tokens", type=int, default=4)
+    ap.add_argument("--max_new_tokens", type=int, default=80)
 
     args = ap.parse_args()
 
-    df = pd.read_parquet(args.input) if args.input.endswith(".parquet") else pd.read_csv(args.input)
+    checkpoint_path = args.output_base + "_checkpoint.parquet"
 
-    # Select only SWISS_RELATED == YES (+ non-empty sentence) via run3_config
-    send_mask = build_sentences_to_send_mask(
-        df,
-        text_col=args.text_col,
-        swiss_related_col=args.swiss_related_col,
-    )
-
-    # Ensure sentiment column exists (nullable int)
-    if args.sentiment_col not in df.columns:
-        df[args.sentiment_col] = pd.Series(pd.NA, index=df.index, dtype="Int64")
+    if Path(checkpoint_path).exists():
+        print(f"[pipeline] Checkpoint trouvé, reprise depuis {checkpoint_path}", flush=True)
+        df = pd.read_parquet(checkpoint_path)
     else:
-        # keep nullable ints if possible
-        try:
-            df[args.sentiment_col] = df[args.sentiment_col].astype("Int64")
-        except Exception:
-            df[args.sentiment_col] = pd.Series(df[args.sentiment_col], index=df.index, dtype="Int64")
+        df = pd.read_parquet(args.input) if args.input.endswith(".parquet") else pd.read_csv(args.input)
+
+    send_mask = build_sentences_to_send_mask(df, title_col="title", lead_col="lead")
+
+    for col in ["swiss", "justification"]:
+        if col not in df.columns:
+            df[col] = pd.Series(pd.NA, index=df.index, dtype="string")
+        else:
+            df[col] = df[col].astype("string")
 
     client = TransformersClient(
         LLMConfig(
@@ -100,33 +108,33 @@ def main() -> int:
         return send_mask
 
     def _build_prompt(row: pd.Series, text_col: str) -> str:
-        return run3_prompts.build_user_prompt(row, text_col=text_col)
+        return article_prompts.build_user_prompt(row, text_col=text_col)
 
     def _parse(raw: str) -> dict:
-        sp = parse_sp(raw)
-        # if parsing fails, conservative fallback is 0 (as your guideline says)
-        if pd.isna(sp):
-            sp = 0
-        return {args.sentiment_col: sp}
+        return parse_article_json(raw)
 
     out = run_llm_dataframe(
         df=df,
         cfg=run_cfg,
         client=client,
-        system_prompt=run3_prompts.SYSTEM_PROMPT,
+        system_prompt=article_prompts.SYSTEM_PROMPT,
         select_mask_fn=_select_mask,
         build_prompt_fn=_build_prompt,
         parse_fn=_parse,
-        output_cols=[args.sentiment_col],
-        skip_if_already_filled=args.sentiment_col,  # resume-safe
+        output_cols=["swiss", "justification"],
+        skip_if_already_filled="justification",
+        checkpoint_path=checkpoint_path,
+        checkpoint_every=5,
     )
 
     job_id = os.environ.get("SLURM_JOB_ID") or args.job_id or "nojobid"
+
     base = f"{args.output_base}_job{job_id}"
     parquet_path = base + ".parquet"
     csv_path = base + ".csv"
 
     Path(parquet_path).parent.mkdir(parents=True, exist_ok=True)
+
     out.to_parquet(parquet_path, index=False)
     out.to_csv(csv_path, index=False)
 

@@ -1,4 +1,4 @@
-# run_critic_config.py
+# stance_config.py
 from __future__ import annotations
 
 import pandas as pd

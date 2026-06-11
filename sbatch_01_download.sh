@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #SBATCH --job-name=swissdox_pipe
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=4
@@ -22,6 +22,7 @@ cd "${REPO_DIR}"
 mkdir -p logs data/processed/swissdox
 
 module purge
+dcsrsoft use 20241118
 module load python/3.12.1
 
 source .venv/bin/activate
@@ -33,7 +34,7 @@ which python
 export TMPDIR="/scratch/mkaiser3/tmp_${SLURM_JOB_ID}"
 mkdir -p "${TMPDIR}"
 
-python scripts/download.py \
+python scripts/01_download.py \
   --start 2020-01-01 \
   --end 2025-12-31 \
   --max-results 100000 \

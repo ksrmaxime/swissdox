@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #SBATCH --job-name=sentence_cutting
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=4
@@ -12,6 +12,7 @@
 set -euo pipefail
 
 module purge
+dcsrsoft use 20241118
 module load python/3.12.1
 
 WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
@@ -41,7 +42,7 @@ OUTPUT="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/critic_base.csv"
 echo "INPUT  = $INPUT"
 echo "OUTPUT = $OUTPUT"
 
-python scripts/run_sentence_cutting.py \
+python scripts/03_extract_sentences.py \
     --input  "$INPUT" \
     --output "$OUTPUT"
 

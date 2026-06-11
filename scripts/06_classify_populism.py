@@ -1,4 +1,4 @@
-# run_populism_pipeline.py
+# 06_classify_populism.py
 import sys
 from pathlib import Path
 
@@ -14,8 +14,8 @@ import pandas as pd
 from src.client_src import TransformersClient, LLMConfig
 from src.runner_src import run_llm_dataframe, RunConfig
 
-import run_populism_prompts as run_populism_prompts
-from run_populism_config import build_sentences_to_send_mask
+import populism_prompts as populism_prompts
+from populism_config import build_sentences_to_send_mask
 
 VALID_POPULISM = {"Not Populist", "Somehow Populist", "Clearly Populist"}
 
@@ -78,7 +78,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
 
     ap.add_argument("--input", required=True,
-                    help="Output CSV/Parquet from run_critic_pipeline (must contain STANCE column).")
+                    help="Output CSV/Parquet from 04_classify_stance (must contain STANCE column).")
     ap.add_argument("--output_base", required=True)
     ap.add_argument("--job_id", default=None)
 
@@ -89,7 +89,7 @@ def main() -> int:
 
     ap.add_argument("--text_col", default="sentence")
     ap.add_argument("--stance_col", default="STANCE",
-                    help="Column produced by run_critic_pipeline containing the stance label.")
+                    help="Column produced by 04_classify_stance containing the stance label.")
 
     ap.add_argument("--batch_size", type=int, default=64)
     ap.add_argument("--temperature", type=float, default=0.0)
@@ -166,7 +166,7 @@ def main() -> int:
         return send_mask
 
     def _build_prompt(row: pd.Series, text_col: str) -> str:
-        return run_populism_prompts.build_user_prompt(row, text_col=text_col)
+        return populism_prompts.build_user_prompt(row, text_col=text_col)
 
     def _parse(raw: str) -> dict:
         result = parse_populism_json(raw)
@@ -184,7 +184,7 @@ def main() -> int:
         df=df,
         cfg=run_cfg,
         client=client,
-        system_prompt=run_populism_prompts.SYSTEM_PROMPT,
+        system_prompt=populism_prompts.SYSTEM_PROMPT,
         select_mask_fn=_select_mask,
         build_prompt_fn=_build_prompt,
         parse_fn=_parse,

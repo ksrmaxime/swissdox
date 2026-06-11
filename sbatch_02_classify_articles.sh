@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #SBATCH --job-name=run_article_swissrelated
 #SBATCH --partition=gpu-l40
 #SBATCH --gres=gpu:1
@@ -13,6 +13,7 @@
 set -euo pipefail
 
 module purge
+dcsrsoft use 20241118
 module load python/3.12.1
 
 WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
@@ -35,7 +36,7 @@ MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
 DTYPE=bf16
 BACKEND=transformers
 
-PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/run_article_pipeline.py \
+PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/02_classify_articles.py \
   --input "/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox/swissdox_articles_lead.parquet" \
   --output_base "$OUTBASE" \
   --model_path "$MODEL_PATH" \
@@ -86,8 +87,8 @@ fi
 mkdir -p "$FINAL_RUN_DIR"
 
 cp "$PRED_CSV" "$FINAL_RUN_DIR/" || true
-cp "src/run_article_prompts.py" "$FINAL_RUN_DIR/prompts_used.py" || true
-cp "src/run_article_config.py" "$FINAL_RUN_DIR/config_used.py" || true
+cp "src/article_prompts.py" "$FINAL_RUN_DIR/prompts_used.py" || true
+cp "src/article_config.py" "$FINAL_RUN_DIR/config_used.py" || true
 cp "$0" "$FINAL_RUN_DIR/sbatch_used.sbatch" || true
 
 # move eval reports too

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #SBATCH --job-name=stance_analysis
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=4
@@ -9,12 +9,13 @@
 #SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
-# Usage: sbatch sbatch_analysis.sh <ARRAY_JOB_ID>
-# Exemple: sbatch sbatch_analysis.sh 60015520
+# Usage: sbatch sbatch_08_analyze.sh <POPULISM_JOB_ID>
+# Exemple: sbatch sbatch_08_analyze.sh 60015520
 
 set -euo pipefail
 
 module purge
+dcsrsoft use 20241118
 module load python/3.12.1
 
 WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
@@ -25,16 +26,16 @@ mkdir -p logs
 
 ARRAY_JOB_ID=${1:-""}
 if [ -z "$ARRAY_JOB_ID" ]; then
-    echo "[ERROR] Passer le ARRAY_JOB_ID: sbatch sbatch_analysis.sh <ARRAY_JOB_ID>"
+    echo "[ERROR] Passer le POPULISM_JOB_ID: sbatch sbatch_08_analyze.sh <POPULISM_JOB_ID>"
     exit 1
 fi
 
-INPUT="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/critic_stance_merged_job${ARRAY_JOB_ID}.parquet"
+INPUT="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/populism_merged_job${ARRAY_JOB_ID}.parquet"
 OUTDIR="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/output/analysis_job${ARRAY_JOB_ID}"
 
 # Fallback sur CSV si parquet absent
 if [ ! -f "$INPUT" ]; then
-    INPUT="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/critic_stance_merged_job${ARRAY_JOB_ID}.csv"
+    INPUT="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/populism_merged_job${ARRAY_JOB_ID}.csv"
 fi
 
 echo "=== SLURM ==="
@@ -42,7 +43,7 @@ echo "JOBID=${SLURM_JOB_ID:-<unset>} HOST=$(hostname) DATE=$(date -Is)"
 echo "INPUT  = $INPUT"
 echo "OUTDIR = $OUTDIR"
 
-python scripts/run_analysis.py \
+python scripts/08_analyze.py \
     --input   "$INPUT" \
     --outdir  "$OUTDIR" \
     --top_journals 25
