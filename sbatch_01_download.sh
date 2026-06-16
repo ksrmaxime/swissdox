@@ -41,3 +41,6 @@ python scripts/01_download.py \
   --outdir data/processed/swissdox
 
 echo "Job finished."
+
+
+test
