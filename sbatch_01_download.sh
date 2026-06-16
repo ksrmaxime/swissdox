@@ -14,17 +14,19 @@ export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
-set -euo pipefail
+set -eo pipefail
 
 REPO_DIR="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO"
 cd "${REPO_DIR}"
 
 mkdir -p logs data/processed/swissdox
 
+# module/dcsrsoft scripts reference unset vars internally, so -u must stay off until after they load
 module purge
 dcsrsoft use 20241118
 module load python/3.12.1
 
+set -u
 source .venv/bin/activate
 
 python --version

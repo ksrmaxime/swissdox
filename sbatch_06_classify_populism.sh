@@ -15,7 +15,7 @@
 # Exemple: sbatch sbatch_06_classify_populism.sh 60015520
 # Le CRITIC_JOB_ID est l'ID du job de sbatch_05_merge_stance.sh
 
-set -euo pipefail
+set -eo pipefail
 
 export PYTORCH_ALLOC_CONF=expandable_segments:True
 
@@ -23,6 +23,7 @@ module purge
 dcsrsoft use 20241118
 module load python/3.12.1
 
+set -u
 WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
 OUTDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed
 OUTBASE="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/populism"

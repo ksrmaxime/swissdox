@@ -9,12 +9,13 @@
 #SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
-set -euo pipefail
+set -eo pipefail
 
 module purge
 dcsrsoft use 20241118
 module load python/3.12.1
 
+set -u
 WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
 
 cd "$WORKDIR"

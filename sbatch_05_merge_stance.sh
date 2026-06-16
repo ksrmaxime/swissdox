@@ -12,12 +12,13 @@
 # Usage: sbatch --dependency=afterok:<ARRAY_JOB_ID> sbatch_merge_critic.sh <ARRAY_JOB_ID>
 # Exemple: sbatch --dependency=afterok:12345678 sbatch_merge_critic.sh 12345678
 
-set -euo pipefail
+set -eo pipefail
 
 module purge
 dcsrsoft use 20241118
 module load python/3.12.1
 
+set -u
 WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
 cd "$WORKDIR"
 source .venv/bin/activate

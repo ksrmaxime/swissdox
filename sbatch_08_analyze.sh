@@ -12,12 +12,13 @@
 # Usage: sbatch sbatch_08_analyze.sh <POPULISM_JOB_ID>
 # Exemple: sbatch sbatch_08_analyze.sh 60015520
 
-set -euo pipefail
+set -eo pipefail
 
 module purge
 dcsrsoft use 20241118
 module load python/3.12.1
 
+set -u
 WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
 cd "$WORKDIR"
 source .venv/bin/activate
