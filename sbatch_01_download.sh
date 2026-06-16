@@ -19,7 +19,9 @@ set -eo pipefail
 REPO_DIR="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO"
 cd "${REPO_DIR}"
 
-mkdir -p logs data/processed/swissdox
+# ── OUTPUT: dossier dédié à ce run (nom de l'étape + son propre job id) ────
+OUTDIR="${REPO_DIR}/data/output/01_download_job${SLURM_JOB_ID}"
+mkdir -p logs "${OUTDIR}"
 
 # module/dcsrsoft scripts reference unset vars internally, so -u must stay off until after they load
 module purge
@@ -33,13 +35,13 @@ python --version
 which python
 
 # Optionnel: utiliser /scratch pour temp si tu fais du gros I/O
-export TMPDIR="/scratch/mkaiser3/tmp_${SLURM_JOB_ID}"
+export TMPDIR="/scratch/chonegg2/tmp_${SLURM_JOB_ID}"
 mkdir -p "${TMPDIR}"
 
 python scripts/01_download.py \
   --start 2025-01-01 \
   --end 2025-01-31 \
   --max-results 100000 \
-  --outdir data/processed/swissdox
+  --outdir "${OUTDIR}"
 
-echo "Job finished."
+echo "Job finished. Output: ${OUTDIR}"

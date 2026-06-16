@@ -124,8 +124,8 @@ def main() -> int:
     )
     ap.add_argument("--input", required=True,
                     help="Article pipeline output (.csv or .parquet)")
-    ap.add_argument("--output", required=True,
-                    help="Output path for critic_base (.csv)")
+    ap.add_argument("--output_base", required=True,
+                    help="Output base path for critic_base (.csv is appended)")
     ap.add_argument("--text_col", default=None,
                     help="Column to split into sentences. Auto-detected if omitted (prefers 'text', falls back to 'lead').")
     ap.add_argument("--swiss_col", default="swiss",
@@ -169,7 +169,7 @@ def main() -> int:
     kw_pattern = build_kw_pattern(KW_SENT)
 
     # ── Traitement par chunks + écriture incrémentale ─────────────────────────
-    output_path = Path(args.output)
+    output_path = Path(f"{args.output_base}.csv")
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     sentence_id = 1

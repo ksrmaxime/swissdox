@@ -5,7 +5,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
-import os
 import argparse
 import json
 import re
@@ -55,7 +54,6 @@ def main() -> int:
 
     ap.add_argument("--input", required=True)
     ap.add_argument("--output_base", required=True)
-    ap.add_argument("--job_id", default=None)
 
     ap.add_argument("--model_path", required=True)
     ap.add_argument("--dtype", default="bf16", choices=["bf16", "fp16", "auto"])
@@ -127,11 +125,8 @@ def main() -> int:
         checkpoint_every=5,
     )
 
-    job_id = os.environ.get("SLURM_JOB_ID") or args.job_id or "nojobid"
-
-    base = f"{args.output_base}_job{job_id}"
-    parquet_path = base + ".parquet"
-    csv_path = base + ".csv"
+    parquet_path = args.output_base + ".parquet"
+    csv_path = args.output_base + ".csv"
 
     Path(parquet_path).parent.mkdir(parents=True, exist_ok=True)
 

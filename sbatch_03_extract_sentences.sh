@@ -6,8 +6,12 @@
 #SBATCH --time=01:00:00
 #SBATCH --output=logs/sentence_cutting_%j.out
 #SBATCH --error=logs/sentence_cutting_%j.err
-#SBATCH --mail-user=maxime.kaiser@unil.ch
+#SBATCH --mail-user=celine.honegger@unil.ch
 #SBATCH --mail-type=END,FAIL
+
+# Usage: sbatch sbatch_03_extract_sentences.sh <PREV_JOB_ID>
+# Exemple: sbatch sbatch_03_extract_sentences.sh 60015520
+# Le PREV_JOB_ID est l'ID du job de sbatch_02_classify_articles.sh
 
 set -eo pipefail
 
@@ -21,31 +25,29 @@ WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
 cd "$WORKDIR"
 source .venv/bin/activate
 
-mkdir -p logs
+# ── OUTPUT: dossier dédié à ce run (nom de l'étape + son propre job id) ────
+OUTDIR="$WORKDIR/data/output/03_extract_sentences_job${SLURM_JOB_ID}"
+mkdir -p logs "$OUTDIR"
 
 echo "=== SLURM ==="
 echo "JOBID=${SLURM_JOB_ID:-<unset>} HOST=$(hostname) DATE=$(date -Is)"
 
-# ── Input: output of sbatch_run_article.sh ────────────────────────────────────
-# Remplacer JOBID_ARTICLE par le job ID du run article (ex: 12345678)
-# ou pointer directement vers le fichier checkpoint si le run n'est pas terminé
-ARTICLE_JOBID=${1:-""}   # passer en argument: sbatch sbatch_sentence_cutting.sh 12345678
-
-if [ -n "$ARTICLE_JOBID" ]; then
-    INPUT="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox_article_with_s_t_job${ARTICLE_JOBID}.csv"
-else
-    # fallback: cherche le fichier checkpoint si le job article tourne encore
-    INPUT="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/processed/swissdox_article_with_s_t_checkpoint.parquet"
+# ── INPUT: job id du run précédent (sbatch_02_classify_articles.sh) ───────
+PREV_JOB_ID="${1:-}"
+if [ -z "$PREV_JOB_ID" ]; then
+    echo "[ERROR] PREV_JOB_ID manquant. Édite la ligne PREV_JOB_ID dans ce script, ou: sbatch sbatch_03_extract_sentences.sh <PREV_JOB_ID>"
+    exit 1
 fi
+INPUT="$WORKDIR/data/output/02_classify_articles_job${PREV_JOB_ID}/articles_classified.csv"
+OUTPUT_BASE="$OUTDIR/critic_base"
 
-OUTPUT="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO/data/critic_base.csv"
-
-echo "INPUT  = $INPUT"
-echo "OUTPUT = $OUTPUT"
+echo "INPUT       = $INPUT"
+echo "OUTPUT_BASE = $OUTPUT_BASE"
 
 python scripts/03_extract_sentences.py \
     --input  "$INPUT" \
-    --output "$OUTPUT"
+    --output_base "$OUTPUT_BASE"
 
-echo "Done. critic_base.csv ready at: $OUTPUT"
+OUTPUT="${OUTPUT_BASE}.csv"
+echo "Done. critic_base ready at: $OUTPUT"
 echo "Rows: $(wc -l < "$OUTPUT")"
