@@ -6,7 +6,7 @@
 #SBATCH --time=02:00:00
 #SBATCH --output=logs/swissdox_%j.out
 #SBATCH --error=logs/swissdox_%j.err
-#SBATCH --mail-user=maxime.kaiser@unil.ch
+#SBATCH --mail-user=celine.honegger@unil.ch
 #SBATCH --mail-type=END,FAIL
 
 export OMP_NUM_THREADS=1
@@ -37,8 +37,8 @@ export TMPDIR="/scratch/mkaiser3/tmp_${SLURM_JOB_ID}"
 mkdir -p "${TMPDIR}"
 
 python scripts/01_download.py \
-  --start 2020-01-01 \
-  --end 2025-12-31 \
+  --start 2025-01-01 \
+  --end 2025-01-31 \
   --max-results 100000 \
   --outdir data/processed/swissdox
 
