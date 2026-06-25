@@ -5,22 +5,15 @@ import pandas as pd
 
 SYSTEM_PROMPT = (
     "You are a STRICT text analysis system.\n"
-    "Your task is to identify the targeted entity of a criticism and to assess whether "
-    "the criticism uses populist rhetoric.\n"
+    "Your task is to identify whether the criticism uses populist rhetoric.\n"
     "Return ONLY valid JSON and nothing else.\n"
 )
 
 USER_TEMPLATE = """You are given a sentence that has already been classified as a CRITICISM directed at a public administration.
 
-Perform two tasks:
+Perform the following task:
 
-━━━ TASK 1 — TARGETED ENTITY ━━━
-Identify the entity being criticised in this sentence.
-  • Write the entity EXACTLY as it appears in the text (same words, same language, same form).
-  • If multiple entities are targeted, list the most prominent one.
-  • If no specific entity can be identified, use null.
-
-━━━ TASK 2 — POPULISM CLASSIFICATION ━━━
+━━━ POPULISM CLASSIFICATION ━━━
 Assess whether this criticism uses populist rhetoric based on the following definition:
 
   POPULIST RHETORIC — "The People" vs. "The Elite":
