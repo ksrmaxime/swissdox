@@ -7,7 +7,7 @@
 #SBATCH --time=10:00:00
 #SBATCH --output=logs/run_article_swissrelated_%j.out
 #SBATCH --error=logs/run_article_swissrelated_%j.err
-#SBATCH --mail-user=celine.honegger@unil.ch
+#SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
 # Usage: sbatch sbatch_02_classify_articles.sh <PREV_JOB_ID>
@@ -22,7 +22,7 @@ module load python/3.12.1
 
 set -u
 WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
-SCRATCHDIR=/scratch/chonegg2
+SCRATCHDIR=/scratch/mkaiser3
 
 cd "$WORKDIR"
 source .venv/bin/activate

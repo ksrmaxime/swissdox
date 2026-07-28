@@ -6,7 +6,7 @@
 #SBATCH --time=01:00:00
 #SBATCH --output=logs/sentence_cutting_%j.out
 #SBATCH --error=logs/sentence_cutting_%j.err
-#SBATCH --mail-user=celine.honegger@unil.ch
+#SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
 # Usage: sbatch sbatch_03_extract_sentences.sh <PREV_JOB_ID>

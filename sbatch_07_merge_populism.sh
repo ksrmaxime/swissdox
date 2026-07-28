@@ -6,7 +6,7 @@
 #SBATCH --time=00:30:00
 #SBATCH --output=logs/merge_populism_%j.out
 #SBATCH --error=logs/merge_populism_%j.err
-#SBATCH --mail-user=celine.honegger@unil.ch
+#SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
 # Usage: sbatch --dependency=afterok:<PREV_JOB_ID> sbatch_07_merge_populism.sh <PREV_JOB_ID>

@@ -6,7 +6,7 @@
 #SBATCH --time=01:00:00
 #SBATCH --output=logs/analysis_%j.out
 #SBATCH --error=logs/analysis_%j.err
-#SBATCH --mail-user=celine.honegger@unil.ch
+#SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
 # Usage: sbatch sbatch_08_analyze.sh <PREV_JOB_ID>

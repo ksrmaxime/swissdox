@@ -7,7 +7,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/critic_array_%A_%a.out
 #SBATCH --error=logs/critic_array_%A_%a.err
-#SBATCH --mail-user=celine.honegger@unil.ch
+#SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 #SBATCH --array=0-7   # 8 GPUs en parallèle → ~6 250 lignes chacun pour 50 000 lignes
 
