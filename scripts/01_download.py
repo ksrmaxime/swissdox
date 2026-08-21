@@ -15,6 +15,7 @@ def main() -> None:
     ap.add_argument("--max-results", type=int, default=20000)
     ap.add_argument("--outdir", default="data/processed/swissdox")
     ap.add_argument("--test", action="store_true", help="Swissdox test mode (if supported)")
+    ap.add_argument("--max-wait-hours", type=float, default=12.0, help="Max time to wait for Swissdox downloadUrl")
     args = ap.parse_args()
 
     languages = ["de", "fr"]
@@ -35,6 +36,7 @@ def main() -> None:
         comment=comment,
         out_dir=Path(args.outdir),
         test=args.test,
+        max_wait_s=int(args.max_wait_hours * 3600),
     )
 
     print("[DONE] Outputs:")

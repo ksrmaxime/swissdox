@@ -3,7 +3,7 @@
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --time=02:00:00
+#SBATCH --time=24:00:00
 #SBATCH --output=logs/swissdox_%j.out
 #SBATCH --error=logs/swissdox_%j.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
@@ -42,6 +42,7 @@ python scripts/01_download.py \
   --start 2015-01-01 \
   --end 2025-12-31 \
   --max-results 100000 \
+  --max-wait-hours 22 \
   --outdir "${OUTDIR}"
 
 echo "Job finished. Output: ${OUTDIR}"

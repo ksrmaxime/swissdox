@@ -250,8 +250,8 @@ class SwissdoxClient:
         self,
         query_id: str,
         *,
-        max_wait_s: int = 25 * 60,
-        poll_every_s: int = 5,
+        max_wait_s: int = 12 * 60 * 60,
+        poll_every_s: int = 30,
     ) -> str:
         deadline = time.time() + max_wait_s
         while time.time() < deadline:
@@ -423,6 +423,7 @@ def run_pipeline(
     comment: str,
     out_dir: Path,
     test: bool = False,
+    max_wait_s: int = 12 * 60 * 60,
 ) -> Dict[str, Path]:
     load_dotenv()
     api_key = os.getenv("SWISSDOX_API_KEY")
@@ -452,7 +453,7 @@ def run_pipeline(
     )
     print(f"[Swissdox] queryId={qid}")
 
-    url = client.wait_for_download_url(qid)
+    url = client.wait_for_download_url(qid, max_wait_s=max_wait_s)
     print(f"[Swissdox] downloadUrl={url}")
 
     df_raw = client.download_tsv_xz(url)
