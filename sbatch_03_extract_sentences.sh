@@ -11,7 +11,7 @@
 
 # Usage: sbatch sbatch_03_extract_sentences.sh <PREV_JOB_ID>
 # Exemple: sbatch sbatch_03_extract_sentences.sh 60015520
-# Le PREV_JOB_ID est l'ID du job de sbatch_02_classify_articles.sh
+# Le PREV_JOB_ID est l'ID du job de sbatch_01_download.sh
 
 set -eo pipefail
 
@@ -32,13 +32,13 @@ mkdir -p logs "$OUTDIR"
 echo "=== SLURM ==="
 echo "JOBID=${SLURM_JOB_ID:-<unset>} HOST=$(hostname) DATE=$(date -Is)"
 
-# ── INPUT: job id du run précédent (sbatch_02_classify_articles.sh) ───────
+# ── INPUT: job id du run précédent (sbatch_01_download.sh) ────────────────
 PREV_JOB_ID="${1:-}"
 if [ -z "$PREV_JOB_ID" ]; then
     echo "[ERROR] PREV_JOB_ID manquant. Édite la ligne PREV_JOB_ID dans ce script, ou: sbatch sbatch_03_extract_sentences.sh <PREV_JOB_ID>"
     exit 1
 fi
-INPUT="$WORKDIR/data/output/02_classify_articles_job${PREV_JOB_ID}/articles_classified.csv"
+INPUT="$WORKDIR/data/output/01_download_job${PREV_JOB_ID}/swissdox_articles_lead.parquet"
 OUTPUT_BASE="$OUTDIR/critic_base"
 
 echo "INPUT       = $INPUT"

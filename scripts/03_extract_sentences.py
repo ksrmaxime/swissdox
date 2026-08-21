@@ -1,11 +1,16 @@
 # 03_extract_sentences.py
 """
-Sentence extraction step between sbatch_02_classify_articles.sh and sbatch_04_classify_stance.sh.
+Sentence extraction step between sbatch_01_download.sh and sbatch_04_classify_stance.sh.
 
-Input  : output of 02_classify_articles.py (.csv or .parquet)
-           must have columns: 'swiss', and a text column (default 'text', fallback 'lead')
+Input  : output of 01_download.py (.csv or .parquet)
+           must have a text column (default 'text', fallback 'lead')
 Output : critic_base.csv ready to be consumed by 04_classify_stance.py
            columns: sentence_id, sentence, matched_keywords, + all article metadata
+
+Keywords used for sentence cutting are the same ones used to build the
+run1 Swissdox query (src/download_src.py), minus the DE_LEVEL/FR_LEVEL terms
+(fédéral, cantonal, Suisse, ...) which only serve to filter articles at query
+time and are too generic to use for sentence-level matching.
 """
 from __future__ import annotations
 
@@ -16,41 +21,14 @@ from pathlib import Path
 
 import pandas as pd
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT))
 
-# ── Keywords (same as SentancesCutting.ipynb) ─────────────────────────────────
-KW_SENT = [
-    'Bürokratie', 'Berner Verwaltung', 'Papierkrieg', 'Verwaltung',
-    'Bundesverwaltung', 'Beamtenapparat', 'Amtsschimmel', 'Regulierungsdichte',
-    'Behörden', 'Bürokraten', 'Beamte', 'Staatsangestellte',
-    'Bureaucratie', 'Administration publique', 'Administration fédérale',
-    'Appareil administratif', 'Appareil étatique', "Appareil de l'État",
-    'Autorités administratives', "Services de l'État", 'Services publics',
-    'Fonction publique', 'Pouvoir administratif', 'Autorités cantonales',
-    'Administration centrale', 'Départements fédéraux', 'Offices fédéraux',
-    "Organes de l'État", 'Technocratie', 'Bureaucrates', 'Fonctionnaires',
-    "Employés de l'État",
-    'VBS', 'DDPS',
-    'Eidgenössische Departement für Verteidigung, Bevölkerungsschutz und Sport',
-    'Département fédéral de la défense, de la protection de la population et des sports',
-    'EDA', 'DFAE',
-    'Eidgenössische Departement für auswärtige Angelegenheiten',
-    'Département fédéral des affaires étrangères',
-    'UVEK', 'DETEC',
-    'Eidgenössische Departement für Umwelt, Verkehr, Energie und Kommunikation',
-    "Département fédéral de l'environnement, des transports, de l'énergie et de la communication",
-    'EJPD', 'DFJP',
-    'Eidgenössische Justiz- und Polizeidepartement',
-    'Département fédéral de justice et police',
-    'EDI', 'DFI',
-    'Eidgenössische Departement des Innern',
-    "Département fédéral de l'intérieur",
-    'EFD', 'DFF',
-    'Eidgenössische Finanzdepartement',
-    'Département fédéral des finances',
-    'WBF', 'DEFR',
-    'Eidgenössische Departement für Wirtschaft, Bildung und Forschung',
-    "Département fédéral de l'économie, de la formation et de la recherche",
-]
+from src.download_src import DE_TERMS, FR_TERMS, DEPARTMENTS, ADMIN_UNITS
+
+# ── Keywords: generic DE/FR bureaucracy terms + departments + admin units ────
+# (kept in sync with the run1 query — see src/download_src.py)
+KW_SENT = DE_TERMS + FR_TERMS + DEPARTMENTS + ADMIN_UNITS
 
 
 def build_kw_pattern(keywords):
@@ -94,13 +72,11 @@ def split_sentences(text: str) -> list[str]:
     return [p.replace(_PLACEHOLDER, '.').strip() for p in parts if p.strip()]
 
 
-def process_chunk(chunk: pd.DataFrame, text_col: str, swiss_col: str, kw_pattern) -> list[dict]:
+def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern) -> list[dict]:
     """Process one chunk of articles, return list of sentence dicts. Never holds exploded df in memory."""
     meta_cols = [c for c in chunk.columns if c != text_col]
     rows = []
     for _, article in chunk.iterrows():
-        if str(article[swiss_col]).strip().upper() != "YES":
-            continue
         sentences = split_sentences(article[text_col])
         for sent in sentences:
             sent = sent.strip()
@@ -128,8 +104,6 @@ def main() -> int:
                     help="Output base path for critic_base (.csv is appended)")
     ap.add_argument("--text_col", default=None,
                     help="Column to split into sentences. Auto-detected if omitted (prefers 'text', falls back to 'lead').")
-    ap.add_argument("--swiss_col", default="swiss",
-                    help="Column containing YES/NO swiss flag (default: swiss)")
     ap.add_argument("--chunk_size", type=int, default=2000,
                     help="Nombre d'articles traités par chunk (default: 2000)")
     args = ap.parse_args()
@@ -158,13 +132,7 @@ def main() -> int:
         return 1
     print(f"[sentence_cutting] Using text column: '{text_col}'")
 
-    if args.swiss_col not in df_full.columns:
-        print(f"[ERROR] Swiss column '{args.swiss_col}' not found. Columns: {list(df_full.columns)}", file=sys.stderr)
-        return 1
-
     n_total = len(df_full)
-    n_swiss = int((df_full[args.swiss_col].astype(str).str.strip().str.upper() == "YES").sum())
-    print(f"[sentence_cutting] Rows swiss=YES: {n_swiss:,} / {n_total:,}")
 
     kw_pattern = build_kw_pattern(KW_SENT)
 
@@ -178,7 +146,7 @@ def main() -> int:
 
     for chunk_start in range(0, n_total, args.chunk_size):
         chunk = df_full.iloc[chunk_start:chunk_start + args.chunk_size]
-        rows = process_chunk(chunk, text_col, args.swiss_col, kw_pattern)
+        rows = process_chunk(chunk, text_col, kw_pattern)
 
         if not rows:
             print(f"[sentence_cutting] Chunk {chunk_start//args.chunk_size + 1}: 0 phrases", flush=True)
