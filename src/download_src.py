@@ -26,18 +26,12 @@ DEFAULT_COLUMNS = [
 ]
 
 DE_TERMS = [
-    "Bürokratie", "Berner Verwaltung", "Papierkrieg", "Verwaltung", "Bundesverwaltung",
-    "Beamtenapparat", "Amtsschimmel", "Regulierungsdichte", "Behörden", "Bürokraten",
-    "Beamte", "Staatsangestellte",
+    "Bürokratie", "Bürokraten", "Verwaltung", "öffentlicher Dienst",
 ]
 DE_LEVEL = ["Bund", "Bundes", "Kanton", "kantonal", "Schweiz"]
 
 FR_TERMS = [
-    "Bureaucratie", "Administration publique", "Administration fédérale", "Appareil administratif",
-    "Appareil étatique", "Appareil de l’État", "Autorités administratives", "Services de l’État",
-    "Services publics", "Fonction publique", "Pouvoir administratif", "Autorités cantonales",
-    "Administration centrale", "Départements fédéraux", "Offices fédéraux", "Organes de l’État",
-    "Technocratie", "Bureaucrates", "Fonctionnaires", "Employés de l'État",
+    "Bureaucratie", "Administration publique", "Administration fédérale", "Services publics", "Bureaucrates",
 ]
 FR_LEVEL = ["fédéral", "federal", "federale", "cantonal", "cantonale", "Suisse"]
 
@@ -54,6 +48,116 @@ DEPARTMENTS = [
     "EFD", "DFF", "Eidgenössische Finanzdepartement", "Département fédéral des finances",
     "WBF", "DEFR", "Eidgenössische Departement für Wirtschaft, Bildung und Forschung",
     "Département fédéral de l'économie, de la formation et de la recherche",
+]
+
+# Administrative units of each department (FR + DE names and abbreviations)
+# NOTE: 2-letter abbreviations (DV, DC, KD, DR, OA) and ambiguous short ones
+# (BAR, BAG, BIT, BWL) are intentionally omitted — they are common standalone
+# words in FR/DE press and would generate false positives.
+ADMIN_UNITS = [
+    # ── DFAE / EDA ──────────────────────────────────────────────────────────
+    "SG-DFAE", "GS-EDA",
+    "Direction du droit international public", "DDIP",
+    "Direktion für Völkerrecht",
+    "Direction consulaire",
+    "Konsularische Direktion",
+    "Direction du développement et de la coopération", "DDC",
+    "Direktion für Entwicklung und Zusammenarbeit", "DEZA",
+    "Direction des ressources",
+    "Direktion für Ressourcen",
+    # ── DFI / EDI ───────────────────────────────────────────────────────────
+    "SG-DFI", "GS-EDI",
+    "Bureau fédéral de l'égalité entre femmes et hommes", "BFEG",
+    "Eidgenössisches Büro für die Gleichstellung von Frau und Mann", "EBG",
+    "Office fédéral de la culture", "OFC",
+    "Bundesamt für Kultur", "BAK",
+    "Archives fédérales suisses", "AFS",
+    "Schweizerisches Bundesarchiv",
+    "Office fédéral de météorologie et de climatologie", "MétéoSuisse",
+    "Bundesamt für Meteorologie und Klimatologie", "MeteoSchweiz",
+    "Office fédéral de la santé publique", "OFSP",
+    "Bundesamt für Gesundheit", "BAG",
+    "Office fédéral de la sécurité alimentaire et des affaires vétérinaires", "OSAV",
+    "Bundesamt für Lebensmittelsicherheit und Veterinärwesen", "BLV",
+    "Office fédéral de la statistique", "OFS",
+    "Bundesamt für Statistik", "BFS",
+    "Office fédéral des assurances sociales", "OFAS",
+    "Bundesamt für Sozialversicherungen", "BSV",
+    # ── DFJP / EJPD ─────────────────────────────────────────────────────────
+    "SG-DFJP", "GS-EJPD",
+    "Secrétariat d'État aux migrations", "SEM",
+    "Staatssekretariat für Migration",
+    "Office fédéral de la justice", "OFJ",
+    "Bundesamt für Justiz",
+    "Office fédéral de la police", "fedpol",
+    "Bundesamt für Polizei",
+    "Service Surveillance de la correspondance par poste et télécommunication", "Service SCPT",
+    "Dienst Überwachung Post- und Fernmeldeverkehr", "ÜPF",
+    # ── DDPS / VBS ──────────────────────────────────────────────────────────
+    "SG-DDPS", "GS-VBS",
+    "Office fédéral de la protection de la population", "OFPP",
+    "Bundesamt für Bevölkerungsschutz", "BABS",
+    "Office fédéral de l'armement", "armasuisse",
+    "Bundesamt für Rüstung",
+    "Office fédéral de topographie", "swisstopo",
+    "Bundesamt für Landestopografie",
+    "Office fédéral du sport", "OFSPO",
+    "Bundesamt für Sport", "BASPO",
+    "Office fédéral de la cybersécurité", "OFCS",
+    "Bundesamt für Cybersicherheit", "BACS",
+    "Secrétariat d'État à la politique de sécurité", "SEPOS",
+    "Staatssekretariat für Sicherheitspolitik",
+    "Armée suisse", "Schweizer Armee",
+    "Service de renseignement de la Confédération", "SRC",
+    "Nachrichtendienst des Bundes", "NDB",
+    "Office de l'auditeur en chef", "OAC",
+    "Oberauditorat",
+    # ── DFF / EFD ───────────────────────────────────────────────────────────
+    "SG-DFF", "GS-EFD",
+    "Secrétariat d'État aux questions financières internationales", "SFI",
+    "Staatssekretariat für internationale Finanzfragen", "SIF",
+    "Administration fédérale des finances", "AFF",
+    "Eidgenössische Finanzverwaltung", "EFV",
+    "Office fédéral du personnel", "OFPER",
+    "Eidgenössisches Personalamt", "EPA",
+    "Administration fédérale des contributions", "AFC",
+    "Eidgenössische Steuerverwaltung", "ESTV",
+    "Office fédéral de la douane et de la sécurité des frontières", "OFDF",
+    "Bundesamt für Zoll und Grenzsicherheit", "BAZG",
+    "Office fédéral de l'informatique et de la télécommunication", "OFIT",
+    "Bundesamt für Informatik und Telekommunikation",
+    "Office fédéral des constructions et de la logistique", "OFCL",
+    "Bundesamt für Bauten und Logistik", "BBL",
+    # ── DEFR / WBF ──────────────────────────────────────────────────────────
+    "SG-DEFR", "GS-WBF",
+    "Secrétariat d'État à l'économie", "SECO",
+    "Staatssekretariat für Wirtschaft",
+    "Secrétariat d'État à la formation, à la recherche et à l'innovation", "SEFRI",
+    "Staatssekretariat für Bildung, Forschung und Innovation", "SBFI",
+    "Office fédéral de l'agriculture", "OFAG",
+    "Bundesamt für Landwirtschaft", "BLW",
+    "Office fédéral pour l'approvisionnement économique du pays", "OFAE",
+    "Bundesamt für wirtschaftliche Landesversorgung",
+    "Office fédéral du logement", "OFL",
+    "Bundesamt für Wohnungswesen", "BWO",
+    "Office fédéral du service civil", "CIVI",
+    "Bundesamt für Zivildienst", "ZIVI",
+    # ── DETEC / UVEK ────────────────────────────────────────────────────────
+    "SG-DETEC", "GS-UVEK",
+    "Office fédéral des transports", "OFT",
+    "Bundesamt für Verkehr", "BAV",
+    "Office fédéral de l'aviation civile", "OFAC",
+    "Bundesamt für Zivilluftfahrt", "BAZL",
+    "Office fédéral de l'énergie", "OFEN",
+    "Bundesamt für Energie", "BFE",
+    "Office fédéral des routes", "OFROU",
+    "Bundesamt für Strassen", "ASTRA",
+    "Office fédéral de la communication", "OFCOM",
+    "Bundesamt für Kommunikation", "BAKOM",
+    "Office fédéral de l'environnement", "OFEV",
+    "Bundesamt für Umwelt", "BAFU",
+    "Office fédéral du développement territorial", "ARE",
+    "Bundesamt für Raumentwicklung",
 ]
 
 
@@ -79,6 +183,7 @@ def build_query_payload(
                 {"AND": [{"OR": DE_TERMS}, {"OR": DE_LEVEL}]},
                 {"AND": [{"OR": FR_TERMS}, {"OR": FR_LEVEL}]},
                 {"OR": DEPARTMENTS},
+                {"OR": ADMIN_UNITS},
             ]
         },
     }

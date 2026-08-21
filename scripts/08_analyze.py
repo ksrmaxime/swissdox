@@ -756,6 +756,11 @@ def fig_10_allcat_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
     _quarterly_by_group(df, outdir, "CRITIC", MAIN_CATEGORIES, "10")
 
 
+def fig_10bis_pubadmin_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 10bis] Public Administration & Bureaucracy × CRITIC × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "CRITIC", ["Bureaucracy", "Public Administration"], "10bis")
+
+
 def fig_11_allcat_praise_quarterly(df: pd.DataFrame, outdir: Path) -> None:
     print("[fig 11] All categories × PRAISE × quarterly", flush=True)
     _quarterly_by_group(df, outdir, "PRAISE", MAIN_CATEGORIES, "11")
@@ -965,6 +970,7 @@ def main() -> int:
     fig_08_dept_praise_quarterly(df, outdir)
     fig_09_dept_neutral_quarterly(df, outdir)
     fig_10_allcat_critic_quarterly(df, outdir)
+    fig_10bis_pubadmin_critic_quarterly(df, outdir)
     fig_11_allcat_praise_quarterly(df, outdir)
     fig_12_allcat_neutral_quarterly(df, outdir)
     fig_13_mention_share_all(df, outdir)
