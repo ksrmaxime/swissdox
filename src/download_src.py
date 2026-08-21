@@ -26,7 +26,7 @@ DEFAULT_COLUMNS = [
 ]
 
 DE_TERMS = [
-    "Bürokratie", "Bürokraten", "Verwaltung", "öffentlicher Dienst",
+    "Bürokratie", "Bürokraten", "öffentliche Verwaltung", "öffentlicher Dienst",
 ]
 DE_LEVEL = ["Bund", "Bundes", "Kanton", "kantonal", "Schweiz"]
 
