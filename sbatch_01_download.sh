@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH --job-name=swissdox_pipe
 #SBATCH --partition=cpu
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=1
 #SBATCH --mem=32G
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/swissdox_%j.out
