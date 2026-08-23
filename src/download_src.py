@@ -26,12 +26,12 @@ DEFAULT_COLUMNS = [
 ]
 
 DE_TERMS = [
-    "Bürokratie", "Bürokraten", "öffentliche Verwaltung", "öffentlicher Dienst",
+    "öffentliche Verwaltung", "Bundesverwaltung", "Staatsverwaltung", "Bürokratie",
 ]
 DE_LEVEL = ["Bund", "Bundes", "Kanton", "kantonal", "Schweiz"]
 
 FR_TERMS = [
-    "Bureaucratie", "Administration publique", "Administration fédérale", "Services publics", "Bureaucrates",
+    "Administration publique", "Administration fédérale", "Administration d'état", "Bureaucratie",
 ]
 FR_LEVEL = ["fédéral", "federal", "federale", "cantonal", "cantonale", "Suisse"]
 
