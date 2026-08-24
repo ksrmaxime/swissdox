@@ -157,8 +157,10 @@ def build_query_payload(
         "languages": languages,
         "content": {
             "OR": [
-                {"AND": [{"OR": DE_TERMS}, {"OR": DE_LEVEL}]},
-                {"AND": [{"OR": FR_TERMS}, {"OR": FR_LEVEL}]},
+                # DE_LEVEL / FR_LEVEL temporarily disabled for a broader download.
+                # Re-enable by restoring the AND with {"OR": DE_LEVEL} / {"OR": FR_LEVEL}.
+                {"OR": DE_TERMS},
+                {"OR": FR_TERMS},
                 {"OR": DEPARTMENTS},
                 {"OR": ADMIN_UNITS},
             ]
