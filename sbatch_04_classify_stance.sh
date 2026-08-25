@@ -11,9 +11,13 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --array=0-7   # 8 GPUs en parallèle → ~6 250 lignes chacun pour 50 000 lignes
 
-# Usage: sbatch sbatch_04_classify_stance.sh <PREV_JOB_ID>
+# Usage: sbatch sbatch_04_classify_stance.sh <PREV_JOB_ID> [MAX_ROWS]
 # Exemple: sbatch sbatch_04_classify_stance.sh 60015520
+# Exemple (test sur 1000 lignes): sbatch sbatch_04_classify_stance.sh 60015520 1000
 # Le PREV_JOB_ID est l'ID du job de sbatch_03_extract_sentences.sh
+# MAX_ROWS (optionnel) limite le dataset d'entrée aux N premières lignes
+# AVANT le découpage en tâches de l'array : le fichier fusionné en sortie
+# (après sbatch_05_merge_stance.sh) contiendra alors exactement N lignes, pas plus.
 
 set -eo pipefail
 
@@ -42,6 +46,9 @@ if [ -z "$PREV_JOB_ID" ]; then
 fi
 INPUT="$WORKDIR/data/output/03_extract_sentences_job${PREV_JOB_ID}/critic_base.csv"
 
+# ── MAX_ROWS: limite optionnelle du nombre de lignes à traiter (test rapide) ─
+MAX_ROWS="${2:-}"
+
 echo "=== SLURM ARRAY ==="
 echo "ARRAY_JOB_ID=${SLURM_ARRAY_JOB_ID:-<unset>} TASK_ID=${SLURM_ARRAY_TASK_ID:-<unset>}"
 echo "HOST=$(hostname) PARTITION=${SLURM_JOB_PARTITION:-<unset>}"
@@ -53,6 +60,12 @@ MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
 DTYPE=bf16
 BACKEND=transformers
 NUM_TASKS=8   # doit correspondre au nombre de tâches dans --array
+
+MAX_ROWS_ARGS=()
+if [ -n "$MAX_ROWS" ]; then
+    echo "[INFO] MAX_ROWS=$MAX_ROWS : seules les $MAX_ROWS premières lignes du dataset seront traitées."
+    MAX_ROWS_ARGS=(--max_rows "$MAX_ROWS")
+fi
 
 python scripts/04_classify_stance.py \
   --input "$INPUT" \
@@ -66,7 +79,8 @@ python scripts/04_classify_stance.py \
   --batch_size 4 \
   --max_new_tokens 300 \
   --temperature 0.0 \
-  --num_tasks "$NUM_TASKS"
+  --num_tasks "$NUM_TASKS" \
+  ${MAX_ROWS_ARGS[@]+"${MAX_ROWS_ARGS[@]}"}
   # --task_id est lu automatiquement depuis SLURM_ARRAY_TASK_ID
 
 echo "Task ${SLURM_ARRAY_TASK_ID} terminée."

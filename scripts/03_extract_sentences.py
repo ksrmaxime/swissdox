@@ -5,7 +5,8 @@ Sentence extraction step between sbatch_01_download.sh and sbatch_04_classify_st
 Input  : output of 01_download.py (.csv or .parquet)
            must have a text column (default 'text', fallback 'lead')
 Output : critic_base.csv ready to be consumed by 04_classify_stance.py
-           columns: sentence_id, sentence, matched_keywords, + all article metadata
+           columns: sentence_id, sentence, matched_keywords, type, sub_type,
+           keyword_abbrev, + all article metadata
 
 One output row = one sentence + one canonical keyword. A sentence that
 matches several *distinct* entities (e.g. "EDA" and "Direktion für
@@ -35,6 +36,7 @@ sys.path.append(str(ROOT))
 from src.download_src import (
     DE_TERMS, FR_TERMS, DEPARTMENTS, ADMIN_UNITS,
     DEPARTMENTS_GROUPS, ADMIN_UNITS_GROUPS,
+    classify_keyword,
 )
 
 # ── Keywords: generic DE/FR bureaucracy terms + departments + admin units ────
@@ -164,9 +166,13 @@ def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, alias_to_group
                 continue
             keywords = resolve_keywords(sent, kw_pattern, alias_to_group, alias_canonical)
             for keyword in keywords:
+                kw_type, kw_sub_type, kw_abbrev = classify_keyword(keyword)
                 row = {c: article[c] for c in meta_cols}
                 row["sentence"] = sent
                 row["matched_keywords"] = keyword
+                row["type"] = kw_type
+                row["sub_type"] = kw_sub_type
+                row["keyword_abbrev"] = kw_abbrev
                 rows.append(row)
     return rows
 

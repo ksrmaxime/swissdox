@@ -138,6 +138,190 @@ ADMIN_UNITS_GROUPS: List[tuple] = [
 ADMIN_UNITS: List[str] = [alias for group in ADMIN_UNITS_GROUPS for alias in group]
 
 
+# -----------------------------
+# Keyword classification (type / sub_type / abbreviation)
+# Used by scripts/03_extract_sentences.py to enrich each matched keyword with:
+#   - type: "generic" (DE_TERMS/FR_TERMS) or "specific" (department/admin unit)
+#   - sub_type: "Public Admin", "bureaucracy", or the department label
+#     (e.g. "VBS/DDPS") the keyword belongs to
+#   - abbrev: the short form of the keyword (itself if it has none)
+# -----------------------------
+BUREAUCRACY_TERMS: List[str] = ["Bürokratie", "Bureaucratie"]
+PUBLIC_ADMIN_TERMS: List[str] = [t for t in DE_TERMS + FR_TERMS if t not in BUREAUCRACY_TERMS]
+
+# Derived straight from DEPARTMENTS_GROUPS (de_abbrev, fr_abbrev, de_full, fr_full):
+# every alias of a department maps to that department's own label and abbrev.
+DEPARTMENT_INFO: Dict[str, Dict[str, str]] = {}
+for _de_abbrev, _fr_abbrev, _de_full, _fr_full in DEPARTMENTS_GROUPS:
+    _label = f"{_de_abbrev}/{_fr_abbrev}"
+    for _alias, _abbrev in (
+        (_de_abbrev, _de_abbrev), (_fr_abbrev, _fr_abbrev),
+        (_de_full, _de_abbrev), (_fr_full, _fr_abbrev),
+    ):
+        DEPARTMENT_INFO[_alias.lower()] = {"abbrev": _abbrev, "department": _label}
+
+# Admin units, grouped by parent department. Each entry is (alias, abbrev),
+# where abbrev=None means the alias has no separate abbreviation (it stands
+# for itself). Kept in sync by hand with ADMIN_UNITS_GROUPS above (same
+# aliases, same order) and checked against it at import time below.
+ADMIN_UNIT_INFO: Dict[str, Dict[str, str]] = {}
+
+
+def _register_units(department: str, *entries: tuple) -> None:
+    for alias, abbrev in entries:
+        ADMIN_UNIT_INFO[alias.lower()] = {"abbrev": abbrev or alias, "department": department}
+
+
+_register_units(
+    "EDA/DFAE",
+    ("SG-DFAE", None), ("GS-EDA", None),
+    ("Direction du droit international public", "DDIP"), ("DDIP", None), ("Direktion für Völkerrecht", None),
+    ("Direction consulaire", None), ("Konsularische Direktion", None),
+    ("Direction du développement et de la coopération", "DDC"), ("DDC", None),
+    ("Direktion für Entwicklung und Zusammenarbeit", "DEZA"), ("DEZA", None),
+    ("Direction des ressources", None), ("Direktion für Ressourcen", None),
+)
+_register_units(
+    "EDI/DFI",
+    ("SG-DFI", None), ("GS-EDI", None),
+    ("Bureau fédéral de l'égalité entre femmes et hommes", "BFEG"), ("BFEG", None),
+    ("Eidgenössisches Büro für die Gleichstellung von Frau und Mann", "EBG"), ("EBG", None),
+    ("Office fédéral de la culture", "OFC"), ("OFC", None),
+    ("Bundesamt für Kultur", "BAK"), ("BAK", None),
+    ("Archives fédérales suisses", "AFS"), ("AFS", None),
+    ("Schweizerisches Bundesarchiv", None),
+    ("Office fédéral de météorologie et de climatologie", "MétéoSuisse"), ("MétéoSuisse", None),
+    ("Bundesamt für Meteorologie und Klimatologie", "MeteoSchweiz"), ("MeteoSchweiz", None),
+    ("Office fédéral de la santé publique", "OFSP"), ("OFSP", None),
+    ("Bundesamt für Gesundheit", "BAG"), ("BAG", None),
+    ("Office fédéral de la sécurité alimentaire et des affaires vétérinaires", "OSAV"), ("OSAV", None),
+    ("Bundesamt für Lebensmittelsicherheit und Veterinärwesen", "BLV"), ("BLV", None),
+    ("Office fédéral de la statistique", "OFS"), ("OFS", None),
+    ("Bundesamt für Statistik", "BFS"), ("BFS", None),
+    ("Office fédéral des assurances sociales", "OFAS"), ("OFAS", None),
+    ("Bundesamt für Sozialversicherungen", "BSV"), ("BSV", None),
+)
+_register_units(
+    "EJPD/DFJP",
+    ("SG-DFJP", None), ("GS-EJPD", None),
+    ("Secrétariat d'État aux migrations", "SEM"), ("SEM", None),
+    ("Staatssekretariat für Migration", None),
+    ("Office fédéral de la justice", "OFJ"), ("OFJ", None),
+    ("Bundesamt für Justiz", None),
+    ("Office fédéral de la police", "fedpol"), ("fedpol", None),
+    ("Bundesamt für Polizei", "fedpol"),
+    ("Service Surveillance de la correspondance par poste et télécommunication", "Service SCPT"),
+    ("Service SCPT", None),
+    ("Dienst Überwachung Post- und Fernmeldeverkehr", "ÜPF"), ("ÜPF", None),
+)
+_register_units(
+    "VBS/DDPS",
+    ("SG-DDPS", None), ("GS-VBS", None),
+    ("Office fédéral de la protection de la population", "OFPP"), ("OFPP", None),
+    ("Bundesamt für Bevölkerungsschutz", "BABS"), ("BABS", None),
+    ("Office fédéral de l'armement", "armasuisse"), ("armasuisse", None),
+    ("Bundesamt für Rüstung", "armasuisse"),
+    ("Office fédéral de topographie", "swisstopo"), ("swisstopo", None),
+    ("Bundesamt für Landestopografie", "swisstopo"),
+    ("Office fédéral du sport", "OFSPO"), ("OFSPO", None),
+    ("Bundesamt für Sport", "BASPO"), ("BASPO", None),
+    ("Office fédéral de la cybersécurité", "OFCS"), ("OFCS", None),
+    ("Bundesamt für Cybersicherheit", "BACS"), ("BACS", None),
+    ("Secrétariat d'État à la politique de sécurité", "SEPOS"), ("SEPOS", None),
+    ("Staatssekretariat für Sicherheitspolitik", None),
+    ("Armée suisse", None), ("Schweizer Armee", None),
+    ("Service de renseignement de la Confédération", "SRC"), ("SRC", None),
+    ("Nachrichtendienst des Bundes", "NDB"), ("NDB", None),
+    ("Office de l'auditeur en chef", "OAC"), ("OAC", None),
+    ("Oberauditorat", None),
+)
+_register_units(
+    "EFD/DFF",
+    ("SG-DFF", None), ("GS-EFD", None),
+    ("Secrétariat d'État aux questions financières internationales", "SFI"), ("SFI", None),
+    ("Staatssekretariat für internationale Finanzfragen", "SIF"), ("SIF", None),
+    ("Administration fédérale des finances", "AFF"), ("AFF", None),
+    ("Eidgenössische Finanzverwaltung", "EFV"), ("EFV", None),
+    ("Office fédéral du personnel", "OFPER"), ("OFPER", None),
+    ("Eidgenössisches Personalamt", "EPA"), ("EPA", None),
+    ("Administration fédérale des contributions", "AFC"), ("AFC", None),
+    ("Eidgenössische Steuerverwaltung", "ESTV"), ("ESTV", None),
+    ("Office fédéral de la douane et de la sécurité des frontières", "OFDF"), ("OFDF", None),
+    ("Bundesamt für Zoll und Grenzsicherheit", "BAZG"), ("BAZG", None),
+    ("Office fédéral de l'informatique et de la télécommunication", "OFIT"), ("OFIT", None),
+    ("Bundesamt für Informatik und Telekommunikation", None),
+    ("Office fédéral des constructions et de la logistique", "OFCL"), ("OFCL", None),
+    ("Bundesamt für Bauten und Logistik", "BBL"), ("BBL", None),
+)
+_register_units(
+    "WBF/DEFR",
+    ("SG-DEFR", None), ("GS-WBF", None),
+    ("Secrétariat d'État à l'économie", "SECO"), ("SECO", None),
+    ("Staatssekretariat für Wirtschaft", None),
+    ("Secrétariat d'État à la formation, à la recherche et à l'innovation", "SEFRI"), ("SEFRI", None),
+    ("Staatssekretariat für Bildung, Forschung und Innovation", "SBFI"), ("SBFI", None),
+    ("Office fédéral de l'agriculture", "OFAG"), ("OFAG", None),
+    ("Bundesamt für Landwirtschaft", "BLW"), ("BLW", None),
+    ("Office fédéral pour l'approvisionnement économique du pays", "OFAE"), ("OFAE", None),
+    ("Bundesamt für wirtschaftliche Landesversorgung", None),
+    ("Office fédéral du logement", "OFL"), ("OFL", None),
+    ("Bundesamt für Wohnungswesen", "BWO"), ("BWO", None),
+    ("Office fédéral du service civil", "CIVI"), ("CIVI", None),
+    ("Bundesamt für Zivildienst", "ZIVI"), ("ZIVI", None),
+)
+_register_units(
+    "UVEK/DETEC",
+    ("SG-DETEC", None), ("GS-UVEK", None),
+    ("Office fédéral des transports", "OFT"), ("OFT", None),
+    ("Bundesamt für Verkehr", "BAV"), ("BAV", None),
+    ("Office fédéral de l'aviation civile", "OFAC"), ("OFAC", None),
+    ("Bundesamt für Zivilluftfahrt", "BAZL"), ("BAZL", None),
+    ("Office fédéral de l'énergie", "OFEN"), ("OFEN", None),
+    ("Bundesamt für Energie", "BFE"), ("BFE", None),
+    ("Office fédéral des routes", "OFROU"), ("OFROU", None),
+    ("Bundesamt für Strassen", "ASTRA"), ("ASTRA", None),
+    ("Office fédéral de la communication", "OFCOM"), ("OFCOM", None),
+    ("Bundesamt für Kommunikation", "BAKOM"), ("BAKOM", None),
+    ("Office fédéral de l'environnement", "OFEV"), ("OFEV", None),
+    ("Bundesamt für Umwelt", "BAFU"), ("BAFU", None),
+    ("Office fédéral du développement territorial", "ARE"), ("ARE", None),
+    ("Bundesamt für Raumentwicklung", None),
+)
+
+# Sanity check: every alias declared in ADMIN_UNITS_GROUPS/DEPARTMENTS_GROUPS
+# above must have a matching entry here, and vice versa. Catches typos/
+# omissions in the hand-written registrations immediately at import time
+# rather than silently misclassifying keywords downstream.
+_missing_units = set(a.lower() for a in ADMIN_UNITS) ^ set(ADMIN_UNIT_INFO.keys())
+if _missing_units:
+    raise AssertionError(f"ADMIN_UNIT_INFO out of sync with ADMIN_UNITS_GROUPS: {_missing_units}")
+_missing_depts = set(a.lower() for a in DEPARTMENTS) ^ set(DEPARTMENT_INFO.keys())
+if _missing_depts:
+    raise AssertionError(f"DEPARTMENT_INFO out of sync with DEPARTMENTS_GROUPS: {_missing_depts}")
+
+
+def classify_keyword(keyword: str) -> tuple[str, str, str]:
+    """Return (type, sub_type, abbrev) for a canonical keyword string.
+
+    type    : "generic" (DE_TERMS/FR_TERMS) or "specific" (department/admin unit)
+    sub_type: "Public Admin", "bureaucracy", or the department label the
+              keyword belongs to (e.g. "VBS/DDPS")
+    abbrev  : short form of the keyword, or the keyword itself if it has none
+    """
+    key = keyword.lower()
+    if key in DEPARTMENT_INFO:
+        info = DEPARTMENT_INFO[key]
+        return "specific", info["department"], info["abbrev"]
+    if key in ADMIN_UNIT_INFO:
+        info = ADMIN_UNIT_INFO[key]
+        return "specific", info["department"], info["abbrev"]
+    if keyword in BUREAUCRACY_TERMS:
+        return "generic", "bureaucracy", keyword
+    if keyword in PUBLIC_ADMIN_TERMS:
+        return "generic", "Public Admin", keyword
+    return "unknown", "unknown", keyword
+
+
 def build_query_payload(
     *,
     start_date: str,
