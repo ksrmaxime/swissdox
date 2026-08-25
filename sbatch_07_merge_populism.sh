@@ -53,11 +53,14 @@ merged_csv     = os.environ["MERGED_CSV"]
 merged_parquet = os.environ["MERGED_PARQUET"]
 
 pattern = f"{inbase}_task*.parquet"
-files = sorted(glob.glob(pattern))
+# "_task*" matche aussi les checkpoints intermédiaires ("_task0_checkpoint.parquet"),
+# qui contiennent les mêmes lignes que le fichier final "_task0.parquet" une fois le
+# job terminé : on les exclut explicitement pour ne pas compter chaque ligne deux fois.
+files = sorted(f for f in glob.glob(pattern) if "checkpoint" not in os.path.basename(f))
 
 if not files:
     pattern = f"{inbase}_task*.csv"
-    files = sorted(glob.glob(pattern))
+    files = sorted(f for f in glob.glob(pattern) if "checkpoint" not in os.path.basename(f))
     if not files:
         print(f"[ERROR] Aucun fichier trouvé avec le pattern: {pattern}", file=sys.stderr)
         sys.exit(1)

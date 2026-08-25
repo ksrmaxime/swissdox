@@ -202,6 +202,12 @@ def main() -> int:
     out.to_parquet(parquet_path, index=False)
     out.to_csv(csv_path, index=False)
 
+    # Le run est terminé et sauvegardé dans parquet_path/csv_path : le checkpoint
+    # est supprimé pour qu'il ne soit plus compté par le glob "_task*.parquet"
+    # du script de merge (sinon chaque ligne y est comptée deux fois).
+    if Path(checkpoint_path).exists():
+        Path(checkpoint_path).unlink()
+
     print(f"Saved: {parquet_path} and {csv_path} | CRITIC rows sent: {int(send_mask.sum()):,}")
     return 0
 

@@ -72,6 +72,8 @@ def main() -> int:
     ap.add_argument("--trust_remote_code", action="store_true")
 
     ap.add_argument("--text_col", default="sentence")
+    ap.add_argument("--keyword_col", default="matched_keywords",
+                    help="Colonne contenant l'entité/keyword ciblé par la ligne (voir 03_extract_sentences.py).")
     ap.add_argument("--decision_col", default="STANCE")
 
     ap.add_argument("--batch_size", type=int, default=64)
@@ -88,6 +90,9 @@ def main() -> int:
     args = ap.parse_args()
 
     df = pd.read_parquet(args.input) if args.input.endswith(".parquet") else pd.read_csv(args.input)
+
+    if args.keyword_col not in df.columns:
+        raise KeyError(f"Missing keyword column: {args.keyword_col}")
 
     if args.max_rows is not None:
         df = df.iloc[: args.max_rows].copy()
@@ -138,7 +143,7 @@ def main() -> int:
         return send_mask
 
     def _build_prompt(row: pd.Series, text_col: str) -> str:
-        return stance_prompts.build_user_prompt(row, text_col=text_col)
+        return stance_prompts.build_user_prompt(row, text_col=text_col, keyword_col=args.keyword_col)
 
     def _parse(raw: str) -> dict:
         result = parse_critic_json(raw)
@@ -175,6 +180,12 @@ def main() -> int:
 
     out.to_parquet(parquet_path, index=False)
     out.to_csv(csv_path, index=False)
+
+    # Le run est terminé et sauvegardé dans parquet_path/csv_path : le checkpoint
+    # est supprimé pour qu'il ne soit plus compté par le glob "_task*.parquet"
+    # du script de merge (sinon chaque ligne y est comptée deux fois).
+    if Path(checkpoint_path).exists():
+        Path(checkpoint_path).unlink()
 
     print(f"Saved: {parquet_path} and {csv_path} | Selected: {int(send_mask.sum()):,}")
     return 0
