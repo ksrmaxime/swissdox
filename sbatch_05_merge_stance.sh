@@ -39,6 +39,15 @@ INBASE="$WORKDIR/data/output/04_classify_stance_job${PREV_JOB_ID}/critic_stance"
 MERGED_CSV="$OUTDIR/critic_stance_merged.csv"
 MERGED_PARQUET="$OUTDIR/critic_stance_merged.parquet"
 
+# ── ÉVALUATION (optionnelle) vs un fichier GOLD annoté à la main ──────────
+# Renseigne ici le chemin vers ton fichier gold (CSV, XLSX ou Parquet) pour activer
+# l'évaluation. Il doit contenir au minimum GOLD_ID_COL et GOLD_STANCE_COL.
+# Laisse vide pour ne faire que le merge, comme avant.
+GOLD_DATA="$WORKDIR/data/critic_stance_GOLD.csv"
+# GOLD_DATA="$WORKDIR/data/external/mon_fichier_gold.csv"
+GOLD_ID_COL="${GOLD_ID_COL:-sentence_id}"
+GOLD_STANCE_COL="${GOLD_STANCE_COL:-STANCE}"
+
 echo "=== MERGE critic array job ${PREV_JOB_ID} ==="
 echo "DATE=$(date -Is)"
 
@@ -88,4 +97,42 @@ filled = merged["STANCE"].notna().sum()
 print(f"[merge] Lignes avec STANCE remplie: {filled:,} / {len(merged):,}")
 PYEOF
 
-echo "Merge terminé."
+# ── ÉVALUATION vs GOLD_DATA (si renseigné) ─────────────────────────────────
+if [ -n "$GOLD_DATA" ]; then
+    if [ ! -f "$GOLD_DATA" ]; then
+        echo "[WARN] GOLD_DATA=$GOLD_DATA introuvable, évaluation ignorée."
+    else
+        echo "=== EVALUATION vs GOLD_DATA=$GOLD_DATA ==="
+
+        ACC_SUMMARY_CSV="$OUTDIR/critic_stance_accuracy_by_type.csv"
+        ACC_ERRORS_CSV="$OUTDIR/critic_stance_errors.csv"
+        ACC_TAG_FILE="$OUTDIR/.accuracy_tag"
+
+        # "|| true" : un échec de l'évaluation (ex: colonne gold manquante) ne doit
+        # pas faire échouer tout le job, le merge lui a déjà réussi et été sauvegardé.
+        python3 scripts/05_evaluate_stance.py \
+            --merged "$MERGED_PARQUET" \
+            --gold "$GOLD_DATA" \
+            --id_col "$GOLD_ID_COL" \
+            --gold_stance_col "$GOLD_STANCE_COL" \
+            --out_summary "$ACC_SUMMARY_CSV" \
+            --out_errors "$ACC_ERRORS_CSV" \
+            --out_accuracy_tag "$ACC_TAG_FILE" || true
+
+        if [ -f "$ACC_TAG_FILE" ]; then
+            ACC_TAG="$(cat "$ACC_TAG_FILE")"
+            rm -f "$ACC_TAG_FILE"
+
+            # Renomme le dossier de résultat pour y intégrer l'accuracy,
+            # ex: 05_merge_stance_job64297021 → 05_merge_stance_75p34_job64297021
+            NEWDIR="$WORKDIR/data/output/05_merge_stance_${ACC_TAG}_job${SLURM_JOB_ID}"
+            mv "$OUTDIR" "$NEWDIR"
+            OUTDIR="$NEWDIR"
+            echo "[eval] Dossier de résultat renommé → $OUTDIR"
+        else
+            echo "[WARN] Évaluation échouée, dossier de résultat non renommé."
+        fi
+    fi
+fi
+
+echo "Merge terminé. Résultats dans: $OUTDIR"
