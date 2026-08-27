@@ -23,11 +23,14 @@ Before classifying, ask: "Does this sentence make a CLAIM that {keyword} DID SOM
 A word with negative connotations does NOT automatically mean CRITIC. The sentence must carry a claim of wrongdoing or failure directed AT {keyword} specifically.
 
 ━━━ CRITIC ━━━
-The sentence contains a claim of wrongdoing, failure, or inadequacy directed at {keyword} (Y) from an identifiable voice (X):
-  • A named or quoted person who: accuses {keyword}, demands it comply with rules (implying it doesn't), recounts harmful personal treatment by its officials, or calls for a change in its institutional practice (implying current practice is inadequate)
+The sentence contains a claim of wrongdoing, failure, or inadequacy directed at {keyword} (Y) from an identifiable voice (X) that is GENUINELY EXTERNAL to {keyword}:
+  ⚠ A spokesperson or official OF {keyword} (e.g. "{keyword}-Sprecher", "Sprecher von {keyword}", "ein Sprecher des {keyword}", "erklärte {keyword}") is NOT an external voice — it IS {keyword}'s own voice, even when quoted directly and even when the words sound restrictive or negative ("nicht zugänglich", "nur sehr zurückhaltend gewährt"). This does NOT count as CRITIC — see NEUTRAL rules below.
+  • A named or quoted person who is NOT part of {keyword} and who: accuses {keyword}, demands it comply with rules (implying it doesn't), recounts harmful personal treatment by its officials, or calls for a change in its institutional practice (implying current practice is inadequate)
   • A direct negative label or adjective applied to {keyword} or its officials by an external voice (naive, incompetent, ineffective, unresponsive, etc.)
+  • A direct pejorative adjective attached to {keyword} in the journalist's own narration, even without a quoted voice (e.g. "überbordende Bürokratie", "administration sous-dotée")
+  • A collective demand or protest calling for less/more/different {keyword} (e.g. protesters demanding "moins de bureaucratie") — implies the current state is inadequate
   • The journalist's own language — but ONLY when it explicitly labels {keyword}'s behavior as failure, dysfunction, unjust, opaque, or arbitrary. Specifically:
-    - Secrecy / opacity: "kept secret", "withheld", "under wraps", "unter Verschluss gehalten", "nicht veröffentlicht"
+    - Secrecy / opacity: "kept secret", "withheld", "under wraps", "unter Verschluss gehalten", "nicht veröffentlicht" — but NOT when the withholding is explained in {keyword}'s own reported voice (see NEUTRAL)
     - Stubbornness embedded in a clause: "had long clung to X", "continued to insist despite all criticism"
     - Explicit failure or absurdity labels applied to {keyword}: "billion-franc flop", "absurd that X", "regulatory standstill"
     - Bureaucracy described as an obstacle or cause of harm: "stumbling block", "unnecessary bureaucracy without real benefit"
@@ -51,7 +54,11 @@ DESCRIBING AN ACTION IS NOT EVALUATING IT:
 {keyword} SPEAKING FOR ITSELF IS NOT CRITICISM OF IT:
   • {keyword} giving its own reasons, explaining a decision, or defending its position — even if those reasons concern a sensitive matter — its own voice is not an external evaluator = NEUTRAL
   • Reported speech attributed directly to {keyword} ("heisst es von X", "sagte X", "laut X") = still {keyword}'s own voice = NEUTRAL
+  • A spokesperson/official OF {keyword} ("X-Sprecher", "Sprecher von X", "erklärte ein Sprecher des X") is {keyword}'s own voice, even when quoted directly and even when the content sounds restrictive or negative = NEUTRAL
   • An official of {keyword} making a normative statement about policy goals or requirements = NEUTRAL
+  • {keyword} issuing recommendations, advice, or warnings (rät ab, empfiehlt, warnt vor) as part of its normal advisory role = NEUTRAL, not a claim that {keyword} did something wrong
+  • {keyword} (or its own spokesperson) reporting that a THIRD PARTY failed to meet a requirement (e.g. an applicant "failed to demonstrate X") = the failure targets the third party, not {keyword} = NEUTRAL
+  • {keyword}'s own spokesperson expressing concern about, or calling on, a THIRD PARTY to change ITS decision = the criticism targets the third party, not {keyword} = NEUTRAL
   • {keyword} not yet having taken a position on something = absence of action, not a claim of failure = NEUTRAL
 
 WRONG TARGET — evaluative language must target {keyword}'s OWN conduct, not any other entity in the sentence:
@@ -66,6 +73,7 @@ OTHER NEUTRAL PATTERNS:
   • A third party challenging {keyword} in a legal process (filing a complaint, lodging an appeal) = procedural fact = NEUTRAL
   • A politician making a conditional promise about future action = no blame attributed to {keyword}'s current conduct = NEUTRAL
   • A private party requesting {keyword} to do something, without implying it has failed = NEUTRAL
+  • A photo credit, byline, or caption fragment with no verb describing {keyword}'s conduct (e.g. "Name / AGENCY") = no claim is being made at all = NEUTRAL
 
 ━━━ DECISION STEPS ━━━
 1. Is {keyword} itself a foreign administration (not Swiss or local)? → NEUTRAL_STATEMENT
@@ -73,7 +81,7 @@ OTHER NEUTRAL PATTERNS:
    • No → NEUTRAL_STATEMENT
 3. Does that evaluative language target {keyword}'s own conduct — not a phone call, a ruling, a private actor, a foreign or other government?
    • No → NEUTRAL_STATEMENT
-4. Is the evaluative voice external to {keyword} (not {keyword}'s own words, even in reported speech)?
+4. Is the evaluative voice external to {keyword}? A spokesperson/official OF {keyword} is {keyword}'s own voice, NOT external, even in a direct quote (not {keyword}'s own words, even in reported speech).
    • No → NEUTRAL_STATEMENT
 5. Is the evaluation of {keyword} negative → CRITIC, or positive → PRAISE?
 6. Still uncertain → NEUTRAL_STATEMENT
