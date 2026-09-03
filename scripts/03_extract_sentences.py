@@ -4,7 +4,7 @@ Sentence extraction step between sbatch_01_download.sh and sbatch_04_classify_st
 
 Input  : output of 01_download.py (.csv or .parquet)
            must have a text column (default 'text', fallback 'lead')
-Output : critic_base.csv ready to be consumed by 04_classify_stance.py
+Output : criticism_base.csv ready to be consumed by 04_classify_stance.py
            columns: sentence_id, sentence, matched_keywords, type, sub_type,
            keyword_abbrev, + all article metadata
 
@@ -184,7 +184,7 @@ def main() -> int:
     ap.add_argument("--input", required=True,
                     help="Article pipeline output (.csv or .parquet)")
     ap.add_argument("--output_base", required=True,
-                    help="Output base path for critic_base (.csv is appended)")
+                    help="Output base path for criticism_base (.csv is appended)")
     ap.add_argument("--text_col", default=None,
                     help="Column to split into sentences. Auto-detected if omitted (prefers 'text', falls back to 'lead').")
     ap.add_argument("--chunk_size", type=int, default=2000,

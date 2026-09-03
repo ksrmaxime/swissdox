@@ -1,12 +1,12 @@
 #!/bin/bash -l
-#SBATCH --job-name=critic_stance_array
+#SBATCH --job-name=criticism_stance_array
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=24:00:00
-#SBATCH --output=logs/critic_array_%A_%a.out
-#SBATCH --error=logs/critic_array_%A_%a.err
+#SBATCH --output=logs/criticism_array_%A_%a.out
+#SBATCH --error=logs/criticism_array_%A_%a.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 #SBATCH --array=0-7   # 8 GPUs en parallèle → ~6 250 lignes chacun pour 50 000 lignes
@@ -35,7 +35,7 @@ source .venv/bin/activate
 
 # ── OUTPUT: dossier dédié à ce run (partagé par les 8 tâches de l'array) ───
 OUTDIR="$WORKDIR/data/output/04_classify_stance_job${SLURM_ARRAY_JOB_ID}"
-OUTBASE="$OUTDIR/critic_stance"
+OUTBASE="$OUTDIR/criticism_stance"
 mkdir -p logs "$OUTDIR"
 
 # ── INPUT: job id du run précédent (sbatch_03_extract_sentences.sh) ───────
@@ -44,7 +44,7 @@ if [ -z "$PREV_JOB_ID" ]; then
     echo "[ERROR] PREV_JOB_ID manquant. Édite la ligne PREV_JOB_ID dans ce script, ou: sbatch sbatch_04_classify_stance.sh <PREV_JOB_ID>"
     exit 1
 fi
-INPUT="$WORKDIR/data/output/03_extract_sentences_job${PREV_JOB_ID}/critic_base.csv"
+INPUT="$WORKDIR/data/output/03_extract_sentences_job${PREV_JOB_ID}/criticism_base.csv"
 
 # ── MAX_ROWS: limite optionnelle du nombre de lignes à traiter (test rapide) ─
 MAX_ROWS="${2:-}"

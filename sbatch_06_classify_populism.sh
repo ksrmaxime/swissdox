@@ -48,8 +48,8 @@ if [ -z "$PREV_JOB_ID" ]; then
     exit 1
 fi
 
-INPUT_PARQUET="$WORKDIR/data/output/05_merge_stance_job${PREV_JOB_ID}/critic_stance_merged.parquet"
-INPUT_CSV="$WORKDIR/data/output/05_merge_stance_job${PREV_JOB_ID}/critic_stance_merged.csv"
+INPUT_PARQUET="$WORKDIR/data/output/05_merge_stance_job${PREV_JOB_ID}/criticism_stance_merged.parquet"
+INPUT_CSV="$WORKDIR/data/output/05_merge_stance_job${PREV_JOB_ID}/criticism_stance_merged.csv"
 
 if [ -f "$INPUT_PARQUET" ]; then
     INPUT="$INPUT_PARQUET"

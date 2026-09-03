@@ -17,10 +17,10 @@ from src.runner_src import run_llm_dataframe, RunConfig
 import stance_prompts as stance_prompts
 from stance_config import build_sentences_to_send_mask
 
-VALID_STANCES = {"CRITIC", "PRAISE", "NEUTRAL_STATEMENT"}
+VALID_STANCES = {"CRITICISM", "PRAISE", "NEUTRAL_STATEMENT"}
 
 
-def parse_critic_json(raw: str) -> dict:
+def parse_criticism_json(raw: str) -> dict:
     if raw is None:
         return {"STANCE": pd.NA, "justification": pd.NA}
 
@@ -41,7 +41,7 @@ def parse_critic_json(raw: str) -> dict:
         pass
 
     stance_match = re.search(
-        r'"?stance"?\s*:\s*"?(CRITIC|PRAISE|NEUTRAL_STATEMENT)"?', s, flags=re.I
+        r'"?stance"?\s*:\s*"?(CRITICISM|PRAISE|NEUTRAL_STATEMENT)"?', s, flags=re.I
     )
     justification_match = re.search(
         r'"?justification"?\s*:\s*"([^"\n\r,}]+)"?', s, flags=re.I
@@ -146,7 +146,7 @@ def main() -> int:
         return stance_prompts.build_user_prompt(row, text_col=text_col, keyword_col=args.keyword_col)
 
     def _parse(raw: str) -> dict:
-        result = parse_critic_json(raw)
+        result = parse_criticism_json(raw)
         result["raw_response"] = raw
         return result
 

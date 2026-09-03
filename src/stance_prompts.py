@@ -14,17 +14,17 @@ USER_TEMPLATE = """You are given a sentence extracted from a text, and ONE speci
 
 Target entity: {keyword}
 
-Classify whether the sentence contains a JUDGMENT — not just a description — that {keyword} SPECIFICALLY acted wrongly, failed, was inadequate (CRITIC), or acted well (PRAISE). The sentence may also mention other administrations, entities, or actors: any evaluation of THOSE is irrelevant. Only a judgment about {keyword} itself counts.
+Classify whether the sentence contains a JUDGMENT — not just a description — that {keyword} SPECIFICALLY acted wrongly, failed, was inadequate (CRITICISM), or acted well (PRAISE). The sentence may also mention other administrations, entities, or actors: any evaluation of THOSE is irrelevant. Only a judgment about {keyword} itself counts.
 
 ━━━ THE CENTRAL TEST ━━━
 Before classifying, ask: "Does this sentence make a CLAIM that {keyword} DID SOMETHING WRONG or FAILED?"
-— If the answer is clearly YES → lean CRITIC
+— If the answer is clearly YES → lean CRITICISM
 — If the sentence merely describes what {keyword} did/decided, or the evaluative language targets a different entity than {keyword} → lean NEUTRAL_STATEMENT
-A word with negative connotations does NOT automatically mean CRITIC. The sentence must carry a claim of wrongdoing or failure directed AT {keyword} specifically.
+A word with negative connotations does NOT automatically mean CRITICISM. The sentence must carry a claim of wrongdoing or failure directed AT {keyword} specifically.
 
-━━━ CRITIC ━━━
+━━━ CRITICISM ━━━
 The sentence contains a claim of wrongdoing, failure, or inadequacy directed at {keyword} (Y) from an identifiable voice (X) that is GENUINELY EXTERNAL to {keyword}:
-  ⚠ A spokesperson or official OF {keyword} (e.g. "{keyword}-Sprecher", "Sprecher von {keyword}", "ein Sprecher des {keyword}", "erklärte {keyword}") is NOT an external voice — it IS {keyword}'s own voice, even when quoted directly and even when the words sound restrictive or negative ("nicht zugänglich", "nur sehr zurückhaltend gewährt"). This does NOT count as CRITIC — see NEUTRAL rules below.
+  ⚠ A spokesperson or official OF {keyword} (e.g. "{keyword}-Sprecher", "Sprecher von {keyword}", "ein Sprecher des {keyword}", "erklärte {keyword}") is NOT an external voice — it IS {keyword}'s own voice, even when quoted directly and even when the words sound restrictive or negative ("nicht zugänglich", "nur sehr zurückhaltend gewährt"). This does NOT count as CRITICISM — see NEUTRAL rules below.
   • A named or quoted person who is NOT part of {keyword} and who: accuses {keyword}, demands it comply with rules (implying it doesn't), recounts harmful personal treatment by its officials, or calls for a change in its institutional practice (implying current practice is inadequate)
   • A direct negative label or adjective applied to {keyword} or its officials by an external voice (naive, incompetent, ineffective, unresponsive, etc.)
   • A direct pejorative adjective attached to {keyword} in the journalist's own narration, even without a quoted voice (e.g. "überbordende Bürokratie", "administration sous-dotée")
@@ -83,13 +83,13 @@ OTHER NEUTRAL PATTERNS:
    • No → NEUTRAL_STATEMENT
 4. Is the evaluative voice external to {keyword}? A spokesperson/official OF {keyword} is {keyword}'s own voice, NOT external, even in a direct quote (not {keyword}'s own words, even in reported speech).
    • No → NEUTRAL_STATEMENT
-5. Is the evaluation of {keyword} negative → CRITIC, or positive → PRAISE?
+5. Is the evaluation of {keyword} negative → CRITICISM, or positive → PRAISE?
 6. Still uncertain → NEUTRAL_STATEMENT
 
 Return ONLY this strict JSON:
 {{
   "justification": "<one sentence: name the evaluative signal about {keyword} and its source, or confirm no such signal targets {keyword}>",
-  "stance": "CRITIC|PRAISE|NEUTRAL_STATEMENT"
+  "stance": "CRITICISM|PRAISE|NEUTRAL_STATEMENT"
 }}
 
 Target entity:

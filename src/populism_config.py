@@ -13,7 +13,7 @@ def build_sentences_to_send_mask(
     """
     Send only rows that:
       - have a non-empty sentence
-      - have been classified as STANCE == "CRITIC" in the upstream critic pipeline
+      - have been classified as STANCE == "CRITICISM" in the upstream criticism pipeline
     Resume logic is handled by skip_if_already_filled in the pipeline.
     """
     if sentence_col not in df.columns:
@@ -25,6 +25,6 @@ def build_sentences_to_send_mask(
         )
 
     has_sentence = df[sentence_col].notna() & (df[sentence_col].astype(str).str.strip() != "")
-    is_critic = df[stance_col].astype(str).str.strip().str.upper() == "CRITIC"
+    is_criticism = df[stance_col].astype(str).str.strip().str.upper() == "CRITICISM"
 
-    return has_sentence & is_critic
+    return has_sentence & is_criticism

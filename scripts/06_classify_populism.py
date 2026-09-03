@@ -94,8 +94,8 @@ def main() -> int:
     ap.add_argument("--temperature", type=float, default=0.0)
     ap.add_argument("--max_new_tokens", type=int, default=150)
     ap.add_argument("--max_rows", type=int, default=None,
-                    help="Limit the number of CRITIC rows processed by the LLM. "
-                         "If omitted, all CRITIC rows are processed.")
+                    help="Limit the number of CRITICISM rows processed by the LLM. "
+                         "If omitted, all CRITICISM rows are processed.")
     ap.add_argument("--task_id", type=int, default=None,
                     help="Array task index (0-indexed). Falls back to SLURM_ARRAY_TASK_ID.")
     ap.add_argument("--num_tasks", type=int, default=None,
@@ -105,13 +105,13 @@ def main() -> int:
 
     df = pd.read_parquet(args.input) if args.input.endswith(".parquet") else pd.read_csv(args.input)
 
-    # ── Keep only CRITIC rows for processing (mask applied inside run_llm_dataframe) ──
-    # max_rows applies to the CRITIC subset so the user can cap quickly
+    # ── Keep only CRITICISM rows for processing (mask applied inside run_llm_dataframe) ──
+    # max_rows applies to the CRITICISM subset so the user can cap quickly
     if args.max_rows is not None:
-        critic_idx = df.index[df[args.stance_col].astype(str).str.strip().str.upper() == "CRITIC"]
-        keep_idx = critic_idx[: args.max_rows]
-        non_critic_idx = df.index.difference(critic_idx)
-        df = df.loc[sorted(non_critic_idx.tolist() + keep_idx.tolist())].copy()
+        criticism_idx = df.index[df[args.stance_col].astype(str).str.strip().str.upper() == "CRITICISM"]
+        keep_idx = criticism_idx[: args.max_rows]
+        non_criticism_idx = df.index.difference(criticism_idx)
+        df = df.loc[sorted(non_criticism_idx.tolist() + keep_idx.tolist())].copy()
 
     # ── Slicing for array jobs ────────────────────────────────────────────────
     task_id = args.task_id
@@ -136,7 +136,7 @@ def main() -> int:
     send_mask = build_sentences_to_send_mask(
         df, sentence_col=args.text_col, stance_col=args.stance_col
     )
-    print(f"[pipeline] CRITIC rows to process: {int(send_mask.sum()):,} / {len(df):,}", flush=True)
+    print(f"[pipeline] CRITICISM rows to process: {int(send_mask.sum()):,} / {len(df):,}", flush=True)
 
     for col in ["target_entity", "POPULISM", "justification"]:
         if col not in df.columns:
@@ -208,7 +208,7 @@ def main() -> int:
     if Path(checkpoint_path).exists():
         Path(checkpoint_path).unlink()
 
-    print(f"Saved: {parquet_path} and {csv_path} | CRITIC rows sent: {int(send_mask.sum()):,}")
+    print(f"Saved: {parquet_path} and {csv_path} | CRITICISM rows sent: {int(send_mask.sum()):,}")
     return 0
 
 

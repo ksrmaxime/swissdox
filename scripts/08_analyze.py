@@ -1,17 +1,17 @@
 # 08_analyze.py
 """
-Comprehensive stance analysis on the merged critic output.
+Comprehensive stance analysis on the merged criticism output.
 
 Produces:
-  01_temporal_evolution.png           — 3 stances over time
-  02_by_language.png                  — stances by language (fr/de) over time
-  03_by_journal.png                   — stance distribution per journal (top N)
-  04a_category_temporal.png           — stances per keyword category over time
-  04b_category_by_journal.png         — category targeting per journal
-  04c_category_by_language.png        — category targeting by language
-  05_critic_stacked_categories.png    — critic curve + category breakdown underneath
-  06_critic_stacked_departments.png   — same but for federal departments only
-  stats/                              — CSV summaries for every analysis
+  01_temporal_evolution.png              — 3 stances over time
+  02_by_language.png                     — stances by language (fr/de) over time
+  03_by_journal.png                      — stance distribution per journal (top N)
+  04a_category_temporal.png              — stances per keyword category over time
+  04b_category_by_journal.png            — category targeting per journal
+  04c_category_by_language.png           — category targeting by language
+  05_criticism_stacked_categories.png    — criticism curve + category breakdown underneath
+  06_criticism_stacked_departments.png   — same but for federal departments only
+  stats/                                 — CSV summaries for every analysis
 """
 from __future__ import annotations
 
@@ -42,9 +42,9 @@ plt.rcParams.update({
     "axes.spines.right": False,
 })
 
-STANCES       = ["CRITIC", "PRAISE", "NEUTRAL_STATEMENT"]
-STANCE_COLORS = {"CRITIC": "#e74c3c", "PRAISE": "#2ecc71", "NEUTRAL_STATEMENT": "#3498db"}
-STANCE_LABELS = {"CRITIC": "Critique", "PRAISE": "Praise", "NEUTRAL_STATEMENT": "Neutral"}
+STANCES       = ["CRITICISM", "PRAISE", "NEUTRAL_STATEMENT"]
+STANCE_COLORS = {"CRITICISM": "#e74c3c", "PRAISE": "#2ecc71", "NEUTRAL_STATEMENT": "#3498db"}
+STANCE_LABELS = {"CRITICISM": "Criticism", "PRAISE": "Praise", "NEUTRAL_STATEMENT": "Neutral"}
 
 # ── Keyword → category mapping ─────────────────────────────────────────────────
 CATEGORIES: dict[str, list[str]] = {
@@ -328,7 +328,7 @@ def fig_03_journal(df: pd.DataFrame, outdir: Path, top_n: int = 25) -> None:
     )
     totals = grp.sum(axis=1)
     pct    = grp.div(totals, axis=0) * 100
-    pct    = pct.sort_values("CRITIC", ascending=True)
+    pct    = pct.sort_values("CRITICISM", ascending=True)
 
     fig, ax = plt.subplots(figsize=(12, max(8, len(pct) * 0.4)))
     y     = np.arange(len(pct))
@@ -342,7 +342,7 @@ def fig_03_journal(df: pd.DataFrame, outdir: Path, top_n: int = 25) -> None:
     ax.set_yticks(y)
     ax.set_yticklabels(pct.index, fontsize=8)
     ax.set_xlabel("Share (%)")
-    ax.set_title(f"Stance distribution by journal (top {top_n} by volume, sorted by Critique %)")
+    ax.set_title(f"Stance distribution by journal (top {top_n} by volume, sorted by Criticism %)")
     ax.xaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
     ax.legend(loc="lower right")
 
@@ -415,10 +415,10 @@ def fig_04b_category_journal(df: pd.DataFrame, outdir: Path, top_n: int = 15) ->
     top_journals = df["medium_name"].value_counts().head(top_n).index
     sub = df[df["medium_name"].isin(top_journals)].copy()
 
-    # Fixed sort order based on overall CRITIC % (same as fig 03) — consistent across all panels
+    # Fixed sort order based on overall CRITICISM % (same as fig 03) — consistent across all panels
     overall_grp  = sub.groupby(["medium_name", "STANCE"]).size().unstack(fill_value=0).reindex(columns=STANCES, fill_value=0)
     overall_pct  = overall_grp.div(overall_grp.sum(axis=1), axis=0) * 100
-    fixed_order  = overall_pct["CRITIC"].sort_values(ascending=True).index.tolist()
+    fixed_order  = overall_pct["CRITICISM"].sort_values(ascending=True).index.tolist()
 
     cats_present = [c for c in MAIN_CATEGORIES if c in sub["primary_category"].unique()]
     n_cats = len(cats_present)
@@ -527,26 +527,26 @@ def fig_04c_category_language(df: pd.DataFrame, outdir: Path) -> None:
     pd.DataFrame(rows).to_csv(outdir / "stats" / "04c_category_language.csv", index=False)
 
 
-# ── Figure 05 — Critic curve + stacked keyword categories ─────────────────────
+# ── Figure 05 — Criticism curve + stacked keyword categories ─────────────────────
 
-def fig_05_critic_stacked(df: pd.DataFrame, outdir: Path) -> None:
-    print("[fig 05] Critic stacked by category (%)", flush=True)
-    critics = df[df["STANCE"] == "CRITIC"].copy()
+def fig_05_criticism_stacked(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 05] Criticism stacked by category (%)", flush=True)
+    criticisms = df[df["STANCE"] == "CRITICISM"].copy()
 
-    cats_present = [c for c in MAIN_CATEGORIES if c in critics["primary_category"].unique()]
+    cats_present = [c for c in MAIN_CATEGORIES if c in criticisms["primary_category"].unique()]
 
     pivot = (
-        critics.groupby(["year", "primary_category"])
+        criticisms.groupby(["year", "primary_category"])
         .size()
         .unstack(fill_value=0)
         .reindex(columns=cats_present, fill_value=0)
     )
-    total_critic = pivot.sum(axis=1)
-    # proportion of CRITIC among all stances per year
+    total_criticism = pivot.sum(axis=1)
+    # proportion of CRITICISM among all stances per year
     total_all = df.groupby("year")["STANCE"].count()
-    critic_pct = (total_critic / total_all * 100).reindex(pivot.index, fill_value=0)
-    # category share within critics (%)
-    pivot_pct = pivot.div(total_critic, axis=0) * critic_pct.values[:, None]
+    criticism_pct = (total_criticism / total_all * 100).reindex(pivot.index, fill_value=0)
+    # category share within criticisms (%)
+    pivot_pct = pivot.div(total_criticism, axis=0) * criticism_pct.values[:, None]
 
     fig, ax = plt.subplots(figsize=(12, 6))
     colors = [CATEGORY_COLORS.get(c, "#aaa") for c in cats_present]
@@ -557,7 +557,7 @@ def fig_05_critic_stacked(df: pd.DataFrame, outdir: Path) -> None:
         colors=colors,
         alpha=0.85,
     )
-    ax.plot(pivot_pct.index, critic_pct, color="black", linewidth=2.5,
+    ax.plot(pivot_pct.index, criticism_pct, color="black", linewidth=2.5,
             marker="o", markersize=5, label="Total Critique (%)", zorder=5)
 
     ax.set_title("Critique share over time (%) — breakdown by keyword category", fontsize=13)
@@ -566,35 +566,35 @@ def fig_05_critic_stacked(df: pd.DataFrame, outdir: Path) -> None:
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
     ax.legend(loc="upper left", fontsize=8, ncol=2)
 
-    save(fig, outdir / "05_critic_stacked_categories.png")
+    save(fig, outdir / "05_criticism_stacked_categories.png")
     out = pivot_pct.copy()
-    out["TOTAL_CRITIC_PCT"] = critic_pct
-    out.round(2).to_csv(outdir / "stats" / "05_critic_stacked_categories.csv")
+    out["TOTAL_CRITICISM_PCT"] = criticism_pct
+    out.round(2).to_csv(outdir / "stats" / "05_criticism_stacked_categories.csv")
 
 
-# ── Figure 06 — Critic curve + stacked federal departments only ────────────────
+# ── Figure 06 — Criticism curve + stacked federal departments only ────────────────
 
-def fig_06_critic_departments(df: pd.DataFrame, outdir: Path) -> None:
-    print("[fig 06] Critic stacked by department (%)", flush=True)
-    dept_critics = df[(df["STANCE"] == "CRITIC") & (df["primary_category"].isin(DEPT_CATEGORIES))].copy()
+def fig_06_criticism_departments(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 06] Criticism stacked by department (%)", flush=True)
+    dept_criticisms = df[(df["STANCE"] == "CRITICISM") & (df["primary_category"].isin(DEPT_CATEGORIES))].copy()
 
-    if dept_critics.empty:
-        print("  [skip] no critic rows for departments", flush=True)
+    if dept_criticisms.empty:
+        print("  [skip] no criticism rows for departments", flush=True)
         return
 
-    depts_present = [c for c in DEPT_CATEGORIES if c in dept_critics["primary_category"].unique()]
+    depts_present = [c for c in DEPT_CATEGORIES if c in dept_criticisms["primary_category"].unique()]
 
     pivot = (
-        dept_critics.groupby(["year", "primary_category"])
+        dept_criticisms.groupby(["year", "primary_category"])
         .size()
         .unstack(fill_value=0)
         .reindex(columns=depts_present, fill_value=0)
     )
-    total_dept_critic = pivot.sum(axis=1)
-    # proportion of dept-critic among all stances per year
+    total_dept_criticism = pivot.sum(axis=1)
+    # proportion of dept-criticism among all stances per year
     total_all = df.groupby("year")["STANCE"].count()
-    dept_critic_pct = (total_dept_critic / total_all * 100).reindex(pivot.index, fill_value=0)
-    pivot_pct = pivot.div(total_dept_critic, axis=0) * dept_critic_pct.values[:, None]
+    dept_criticism_pct = (total_dept_criticism / total_all * 100).reindex(pivot.index, fill_value=0)
+    pivot_pct = pivot.div(total_dept_criticism, axis=0) * dept_criticism_pct.values[:, None]
 
     fig, ax = plt.subplots(figsize=(12, 6))
     colors = [CATEGORY_COLORS.get(c, "#aaa") for c in depts_present]
@@ -605,7 +605,7 @@ def fig_06_critic_departments(df: pd.DataFrame, outdir: Path) -> None:
         colors=colors,
         alpha=0.85,
     )
-    ax.plot(pivot_pct.index, dept_critic_pct, color="black", linewidth=2.5,
+    ax.plot(pivot_pct.index, dept_criticism_pct, color="black", linewidth=2.5,
             marker="o", markersize=5, label="Total dept. Critique (%)", zorder=5)
 
     ax.set_title("Critique targeting federal departments (%) — breakdown by department", fontsize=13)
@@ -614,16 +614,16 @@ def fig_06_critic_departments(df: pd.DataFrame, outdir: Path) -> None:
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(pct_fmt))
     ax.legend(loc="upper left", fontsize=9)
 
-    save(fig, outdir / "06_critic_stacked_departments.png")
+    save(fig, outdir / "06_criticism_stacked_departments.png")
     out = pivot_pct.copy()
-    out["TOTAL_DEPT_CRITIC_PCT"] = dept_critic_pct
-    out.round(2).to_csv(outdir / "stats" / "06_critic_stacked_departments.csv")
+    out["TOTAL_DEPT_CRITICISM_PCT"] = dept_criticism_pct
+    out.round(2).to_csv(outdir / "stats" / "06_criticism_stacked_departments.csv")
 
 
 # ── Generic quarterly analysis (stance × category group) ──────────────────────
 
 _HEATMAP_COLORS = {
-    "CRITIC":             "YlOrRd",
+    "CRITICISM":          "YlOrRd",
     "PRAISE":             "YlGn",
     "NEUTRAL_STATEMENT":  "YlGnBu",
 }
@@ -733,9 +733,9 @@ def _quarterly_by_group(
 
 # ── Figures 07-12 — Quarterly analyses ────────────────────────────────────────
 
-def fig_07_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
-    print("[fig 07] Dept × CRITIC × quarterly", flush=True)
-    _quarterly_by_group(df, outdir, "CRITIC", DEPT_CATEGORIES, "07",
+def fig_07_dept_criticism_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 07] Dept × CRITICISM × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "CRITICISM", DEPT_CATEGORIES, "07",
                         short_label_fn=lambda c: c.replace("Dept: ", ""))
 
 
@@ -751,14 +751,14 @@ def fig_09_dept_neutral_quarterly(df: pd.DataFrame, outdir: Path) -> None:
                         short_label_fn=lambda c: c.replace("Dept: ", ""))
 
 
-def fig_10_allcat_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
-    print("[fig 10] All categories × CRITIC × quarterly", flush=True)
-    _quarterly_by_group(df, outdir, "CRITIC", MAIN_CATEGORIES, "10")
+def fig_10_allcat_criticism_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 10] All categories × CRITICISM × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "CRITICISM", MAIN_CATEGORIES, "10")
 
 
-def fig_10bis_pubadmin_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
-    print("[fig 10bis] Public Administration & Bureaucracy × CRITIC × quarterly", flush=True)
-    _quarterly_by_group(df, outdir, "CRITIC", ["Bureaucracy", "Public Administration"], "10bis")
+def fig_10bis_pubadmin_criticism_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 10bis] Public Administration & Bureaucracy × CRITICISM × quarterly", flush=True)
+    _quarterly_by_group(df, outdir, "CRITICISM", ["Bureaucracy", "Public Administration"], "10bis")
 
 
 def fig_11_allcat_praise_quarterly(df: pd.DataFrame, outdir: Path) -> None:
@@ -771,31 +771,31 @@ def fig_12_allcat_neutral_quarterly(df: pd.DataFrame, outdir: Path) -> None:
     _quarterly_by_group(df, outdir, "NEUTRAL_STATEMENT", MAIN_CATEGORIES, "12")
 
 
-# ── Figure 15 — One graph per department: quarterly CRITIC evolution ───────────
+# ── Figure 15 — One graph per department: quarterly CRITICISM evolution ───────────
 
-def fig_15_per_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
-    print("[fig 15] One graph per department × CRITIC × quarterly", flush=True)
+def fig_15_per_dept_criticism_quarterly(df: pd.DataFrame, outdir: Path) -> None:
+    print("[fig 15] One graph per department × CRITICISM × quarterly", flush=True)
 
-    critics      = df[df["STANCE"] == "CRITIC"].copy()
+    criticisms   = df[df["STANCE"] == "CRITICISM"].copy()
     all_quarters = sorted(df["year_q"].unique(), key=lambda s: (int(s[:4]), int(s[-1])))
     total_all_q  = df.groupby("year_q")["STANCE"].count().reindex(all_quarters, fill_value=0)
     x            = np.arange(len(all_quarters))
 
-    dept_dir = outdir / "15_per_dept_critic"
+    dept_dir = outdir / "15_per_dept_criticism"
     dept_dir.mkdir(parents=True, exist_ok=True)
 
     rows = []
     for dept in DEPT_CATEGORIES:
         label = dept.replace("Dept: ", "")
         dept_q = (
-            critics[critics["primary_category"] == dept]
+            criticisms[criticisms["primary_category"] == dept]
             .groupby("year_q").size()
             .reindex(all_quarters, fill_value=0)
             / total_all_q * 100
         ).fillna(0)
 
         if dept_q.sum() == 0:
-            print(f"  [skip] {label} — no CRITIC rows", flush=True)
+            print(f"  [skip] {label} — no CRITICISM rows", flush=True)
             continue
 
         color = CATEGORY_COLORS.get(dept, "#555")
@@ -846,12 +846,12 @@ def fig_15_per_dept_critic_quarterly(df: pd.DataFrame, outdir: Path) -> None:
             ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.0f}%"))
 
         fname = label.lower().replace(" ", "_").replace("/", "_")
-        save(fig, dept_dir / f"15_{fname}_critic_quarterly.png")
+        save(fig, dept_dir / f"15_{fname}_criticism_quarterly.png")
 
         for q, v in zip(all_quarters, dept_q.values):
-            rows.append({"department": label, "quarter": q, "critic_pct": round(v, 3)})
+            rows.append({"department": label, "quarter": q, "criticism_pct": round(v, 3)})
 
-    pd.DataFrame(rows).to_csv(outdir / "stats" / "15_per_dept_critic_quarterly.csv", index=False)
+    pd.DataFrame(rows).to_csv(outdir / "stats" / "15_per_dept_criticism_quarterly.csv", index=False)
     print(f"  → saved in {dept_dir}/", flush=True)
 
 
@@ -946,8 +946,8 @@ def save_global_stats(df: pd.DataFrame, outdir: Path) -> None:
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Stance analysis on merged critic output")
-    ap.add_argument("--input",   required=True,  help="Merged critic CSV or parquet")
+    ap = argparse.ArgumentParser(description="Stance analysis on merged criticism output")
+    ap.add_argument("--input",   required=True,  help="Merged criticism CSV or parquet")
     ap.add_argument("--outdir",  required=True,  help="Output directory for figures and stats")
     ap.add_argument("--top_journals", type=int, default=25, help="Top N journals to show (default 25)")
     args = ap.parse_args()
@@ -964,18 +964,18 @@ def main() -> int:
     fig_04a_category_temporal(df, outdir)
     fig_04b_category_journal(df, outdir, top_n=15)
     fig_04c_category_language(df, outdir)
-    fig_05_critic_stacked(df, outdir)
-    fig_06_critic_departments(df, outdir)
-    fig_07_dept_critic_quarterly(df, outdir)
+    fig_05_criticism_stacked(df, outdir)
+    fig_06_criticism_departments(df, outdir)
+    fig_07_dept_criticism_quarterly(df, outdir)
     fig_08_dept_praise_quarterly(df, outdir)
     fig_09_dept_neutral_quarterly(df, outdir)
-    fig_10_allcat_critic_quarterly(df, outdir)
-    fig_10bis_pubadmin_critic_quarterly(df, outdir)
+    fig_10_allcat_criticism_quarterly(df, outdir)
+    fig_10bis_pubadmin_criticism_quarterly(df, outdir)
     fig_11_allcat_praise_quarterly(df, outdir)
     fig_12_allcat_neutral_quarterly(df, outdir)
     fig_13_mention_share_all(df, outdir)
     fig_14_mention_share_depts(df, outdir)
-    fig_15_per_dept_critic_quarterly(df, outdir)
+    fig_15_per_dept_criticism_quarterly(df, outdir)
 
     print(f"\n[analysis] Done. Results in {outdir}", flush=True)
     return 0

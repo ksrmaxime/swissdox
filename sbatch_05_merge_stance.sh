@@ -1,11 +1,11 @@
 #!/bin/bash -l
-#SBATCH --job-name=merge_critic
+#SBATCH --job-name=merge_criticism
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
 #SBATCH --time=00:30:00
-#SBATCH --output=logs/merge_critic_%j.out
-#SBATCH --error=logs/merge_critic_%j.err
+#SBATCH --output=logs/merge_criticism_%j.out
+#SBATCH --error=logs/merge_criticism_%j.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
@@ -35,20 +35,20 @@ if [ -z "$PREV_JOB_ID" ]; then
     exit 1
 fi
 
-INBASE="$WORKDIR/data/output/04_classify_stance_job${PREV_JOB_ID}/critic_stance"
-MERGED_CSV="$OUTDIR/critic_stance_merged.csv"
-MERGED_PARQUET="$OUTDIR/critic_stance_merged.parquet"
+INBASE="$WORKDIR/data/output/04_classify_stance_job${PREV_JOB_ID}/criticism_stance"
+MERGED_CSV="$OUTDIR/criticism_stance_merged.csv"
+MERGED_PARQUET="$OUTDIR/criticism_stance_merged.parquet"
 
 # ── ÉVALUATION (optionnelle) vs un fichier GOLD annoté à la main ──────────
 # Renseigne ici le chemin vers ton fichier gold (CSV, XLSX ou Parquet) pour activer
 # l'évaluation. Il doit contenir au minimum GOLD_ID_COL et GOLD_STANCE_COL.
 # Laisse vide pour ne faire que le merge, comme avant.
-GOLD_DATA="$WORKDIR/data/critic_stance_GOLD.csv"
+GOLD_DATA="$WORKDIR/data/criticism_stance_GOLD.csv"
 # GOLD_DATA="$WORKDIR/data/external/mon_fichier_gold.csv"
 GOLD_ID_COL="${GOLD_ID_COL:-sentence_id}"
 GOLD_STANCE_COL="${GOLD_STANCE_COL:-STANCE}"
 
-echo "=== MERGE critic array job ${PREV_JOB_ID} ==="
+echo "=== MERGE criticism array job ${PREV_JOB_ID} ==="
 echo "DATE=$(date -Is)"
 
 export INBASE MERGED_CSV MERGED_PARQUET
@@ -104,8 +104,8 @@ if [ -n "$GOLD_DATA" ]; then
     else
         echo "=== EVALUATION vs GOLD_DATA=$GOLD_DATA ==="
 
-        ACC_SUMMARY_CSV="$OUTDIR/critic_stance_accuracy_by_type.csv"
-        ACC_ERRORS_CSV="$OUTDIR/critic_stance_errors.csv"
+        ACC_SUMMARY_CSV="$OUTDIR/criticism_stance_accuracy_by_type.csv"
+        ACC_ERRORS_CSV="$OUTDIR/criticism_stance_errors.csv"
         ACC_TAG_FILE="$OUTDIR/.accuracy_tag"
 
         # "|| true" : un échec de l'évaluation (ex: colonne gold manquante) ne doit

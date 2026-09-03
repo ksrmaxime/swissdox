@@ -39,7 +39,7 @@ if [ -z "$PREV_JOB_ID" ]; then
     exit 1
 fi
 INPUT="$WORKDIR/data/output/01_download_job${PREV_JOB_ID}/swissdox_articles_lead.parquet"
-OUTPUT_BASE="$OUTDIR/critic_base"
+OUTPUT_BASE="$OUTDIR/criticism_base"
 
 echo "INPUT       = $INPUT"
 echo "OUTPUT_BASE = $OUTPUT_BASE"
@@ -49,5 +49,5 @@ python scripts/03_extract_sentences.py \
     --output_base "$OUTPUT_BASE"
 
 OUTPUT="${OUTPUT_BASE}.csv"
-echo "Done. critic_base ready at: $OUTPUT"
+echo "Done. criticism_base ready at: $OUTPUT"
 echo "Rows: $(wc -l < "$OUTPUT")"
