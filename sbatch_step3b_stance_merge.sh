@@ -1,17 +1,17 @@
 #!/bin/bash -l
-#SBATCH --job-name=merge_populism
+#SBATCH --job-name=step3b_stance_merge
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
 #SBATCH --time=00:30:00
-#SBATCH --output=logs/merge_populism_%j.out
-#SBATCH --error=logs/merge_populism_%j.err
+#SBATCH --output=logs/step3b_stance_merge_%j.out
+#SBATCH --error=logs/step3b_stance_merge_%j.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
-# Usage: sbatch --dependency=afterok:<PREV_JOB_ID> sbatch_07_merge_populism.sh <PREV_JOB_ID>
-# Exemple: sbatch --dependency=afterok:12345678 sbatch_07_merge_populism.sh 12345678
-# Le PREV_JOB_ID est l'ID du job array de sbatch_06_classify_populism.sh
+# Usage: sbatch --dependency=afterok:<PREV_JOB_ID> sbatch_step3b_stance_merge.sh <PREV_JOB_ID>
+# Exemple: sbatch --dependency=afterok:12345678 sbatch_step3b_stance_merge.sh 12345678
+# Le PREV_JOB_ID est l'ID du job array de sbatch_step3a_stance_array.sh
 
 set -eo pipefail
 
@@ -25,21 +25,21 @@ cd "$WORKDIR"
 source .venv/bin/activate
 
 # ── OUTPUT: dossier dédié à ce run (nom de l'étape + son propre job id) ────
-OUTDIR="$WORKDIR/data/output/07_merge_populism_job${SLURM_JOB_ID}"
+OUTDIR="$WORKDIR/data/output/step3b_stance_merge_job${SLURM_JOB_ID}"
 mkdir -p logs "$OUTDIR"
 
-# ── INPUT: job id du run précédent (sbatch_06_classify_populism.sh) ───────
+# ── INPUT: job id du run précédent (sbatch_step3a_stance_array.sh) ─────────
 PREV_JOB_ID="${1:-}"
 if [ -z "$PREV_JOB_ID" ]; then
-    echo "[ERROR] PREV_JOB_ID manquant. Édite la ligne PREV_JOB_ID dans ce script, ou: sbatch sbatch_07_merge_populism.sh <PREV_JOB_ID>"
+    echo "[ERROR] PREV_JOB_ID manquant. Édite la ligne PREV_JOB_ID dans ce script, ou: sbatch sbatch_step3b_stance_merge.sh <PREV_JOB_ID>"
     exit 1
 fi
 
-INBASE="$WORKDIR/data/output/06_classify_populism_job${PREV_JOB_ID}/populism"
-MERGED_CSV="$OUTDIR/populism_merged.csv"
-MERGED_PARQUET="$OUTDIR/populism_merged.parquet"
+INBASE="$WORKDIR/data/output/step3a_stance_array_job${PREV_JOB_ID}/criticism_stance"
+MERGED_CSV="$OUTDIR/criticism_stance_merged.csv"
+MERGED_PARQUET="$OUTDIR/criticism_stance_merged.parquet"
 
-echo "=== MERGE populism array job ${PREV_JOB_ID} ==="
+echo "=== MERGE criticism array job ${PREV_JOB_ID} ==="
 echo "DATE=$(date -Is)"
 
 export INBASE MERGED_CSV MERGED_PARQUET
@@ -59,6 +59,7 @@ pattern = f"{inbase}_task*.parquet"
 files = sorted(f for f in glob.glob(pattern) if "checkpoint" not in os.path.basename(f))
 
 if not files:
+    # fallback sur CSV si parquet absent
     pattern = f"{inbase}_task*.csv"
     files = sorted(f for f in glob.glob(pattern) if "checkpoint" not in os.path.basename(f))
     if not files:
@@ -83,8 +84,8 @@ print(f"\n[merge] Total: {len(merged):,} lignes")
 print(f"[merge] Saved → {merged_parquet}")
 print(f"[merge] Saved → {merged_csv}")
 
-filled = merged["POPULISM"].notna().sum()
-print(f"[merge] Lignes avec POPULISM remplie: {filled:,} / {len(merged):,}")
+filled = merged["STANCE"].notna().sum()
+print(f"[merge] Lignes avec STANCE remplie: {filled:,} / {len(merged):,}")
 PYEOF
 
-echo "Merge terminé."
+echo "Merge terminé. Résultats dans: $OUTDIR"

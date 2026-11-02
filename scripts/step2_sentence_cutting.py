@@ -1,10 +1,10 @@
-# 03_extract_sentences.py
+# step2_sentence_cutting.py
 """
-Sentence extraction step between sbatch_01_download.sh and sbatch_04_classify_stance.sh.
+Sentence extraction step between sbatch_step1_download.sh and sbatch_step3a_stance_array.sh.
 
-Input  : output of 01_download.py (.csv or .parquet)
+Input  : output of step1_download.py (.csv or .parquet)
            must have a text column (default 'text', fallback 'lead')
-Output : criticism_base.csv ready to be consumed by 04_classify_stance.py
+Output : criticism_base.csv ready to be consumed by step3a_stance_array.py
            columns: sentence_id, sentence, matched_keywords, type, sub_type,
            keyword_abbrev, + all article metadata
 
@@ -179,7 +179,7 @@ def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, alias_to_group
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Cut articles into keyword-filtered sentences for 04_classify_stance.py"
+        description="Cut articles into keyword-filtered sentences for step3a_stance_array.py"
     )
     ap.add_argument("--input", required=True,
                     help="Article pipeline output (.csv or .parquet)")

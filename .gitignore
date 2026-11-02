@@ -33,3 +33,6 @@ data/external/
 data/processed/
 
 notebooks/
+
+# Archives locales
+OLD/

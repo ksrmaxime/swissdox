@@ -37,7 +37,7 @@ FR_LEVEL = ["fédéral", "federal", "federale", "cantonal", "cantonale", "Suisse
 
 # Each tuple groups the surface forms (abbreviations + full names, DE + FR)
 # that refer to the SAME real-world entity. Used at sentence-matching time
-# (scripts/03_extract_sentences.py) to avoid treating "SECO" and
+# (scripts/step2_sentence_cutting.py) to avoid treating "SECO" and
 # "Staatssekretariat für Wirtschaft" as two different keywords when they
 # co-occur in one sentence.
 DEPARTMENTS_GROUPS: List[tuple] = [
@@ -140,7 +140,7 @@ ADMIN_UNITS: List[str] = [alias for group in ADMIN_UNITS_GROUPS for alias in gro
 
 # -----------------------------
 # Keyword classification (type / sub_type / abbreviation)
-# Used by scripts/03_extract_sentences.py to enrich each matched keyword with:
+# Used by scripts/step2_sentence_cutting.py to enrich each matched keyword with:
 #   - type: "generic" (DE_TERMS/FR_TERMS) or "specific" (department/admin unit)
 #   - sub_type: "Public Admin", "bureaucracy", or the department label
 #     (e.g. "VBS/DDPS") the keyword belongs to

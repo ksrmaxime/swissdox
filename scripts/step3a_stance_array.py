@@ -1,4 +1,4 @@
-# 06_classify_populism.py
+# step3a_stance_array.py
 import sys
 from pathlib import Path
 
@@ -14,71 +14,56 @@ import pandas as pd
 from src.client_src import TransformersClient, LLMConfig
 from src.runner_src import run_llm_dataframe, RunConfig
 
-import populism_prompts as populism_prompts
-from populism_config import build_sentences_to_send_mask
+import stance_prompts as stance_prompts
+from stance_config import build_sentences_to_send_mask
 
-VALID_POPULISM = {"Not Populist", "Somehow Populist", "Clearly Populist"}
+VALID_STANCES = {"CRITICISM", "PRAISE", "NEUTRAL_STATEMENT"}
 
 
-def parse_populism_json(raw: str) -> dict:
-    empty = {"target_entity": pd.NA, "POPULISM": pd.NA, "justification": pd.NA}
+def parse_criticism_json(raw: str) -> dict:
     if raw is None:
-        return empty
+        return {"STANCE": pd.NA, "justification": pd.NA}
 
     s = str(raw).strip()
 
     try:
         obj = json.loads(s)
-        target_entity = obj.get("target_entity")
-        if target_entity is not None:
-            target_entity = str(target_entity).strip()
-            if target_entity.lower() in ("null", "none", ""):
-                target_entity = pd.NA
-        else:
-            target_entity = pd.NA
+        stance = str(obj.get("stance", "")).strip().upper()
+        justification = str(obj.get("justification", "")).strip()
 
-        raw_pop = str(obj.get("populism", "")).strip()
-        # normalise capitalisation to match VALID_POPULISM
-        populism = next(
-            (v for v in VALID_POPULISM if v.lower() == raw_pop.lower()),
-            pd.NA,
-        )
+        if stance not in VALID_STANCES:
+            stance = pd.NA
+        if justification == "":
+            justification = pd.NA
 
-        justification = str(obj.get("justification", "")).strip() or pd.NA
-
-        return {"target_entity": target_entity, "POPULISM": populism, "justification": justification}
+        return {"STANCE": stance, "justification": justification}
     except Exception:
         pass
 
-    # fallback regex
-    entity_match = re.search(
-        r'"?target_entity"?\s*:\s*"([^"\n\r,}]+)"?', s, flags=re.I
-    )
-    pop_match = re.search(
-        r'"?populism"?\s*:\s*"(Not Populist|Somehow Populist|Clearly Populist)"?', s, flags=re.I
+    stance_match = re.search(
+        r'"?stance"?\s*:\s*"?(CRITICISM|PRAISE|NEUTRAL_STATEMENT)"?', s, flags=re.I
     )
     justification_match = re.search(
         r'"?justification"?\s*:\s*"([^"\n\r,}]+)"?', s, flags=re.I
     )
 
-    target_entity = entity_match.group(1).strip() if entity_match else pd.NA
-    raw_pop = pop_match.group(1).strip() if pop_match else ""
-    populism = next(
-        (v for v in VALID_POPULISM if v.lower() == raw_pop.lower()),
-        pd.NA,
-    )
+    stance = stance_match.group(1).upper() if stance_match else pd.NA
     justification = (
         justification_match.group(1).strip() if justification_match else pd.NA
     )
 
-    return {"target_entity": target_entity, "POPULISM": populism, "justification": justification}
+    if isinstance(stance, str) and stance not in VALID_STANCES:
+        stance = pd.NA
+    if isinstance(justification, str) and justification == "":
+        justification = pd.NA
+
+    return {"STANCE": stance, "justification": justification}
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
 
-    ap.add_argument("--input", required=True,
-                    help="Output CSV/Parquet from 04_classify_stance (must contain STANCE column).")
+    ap.add_argument("--input", required=True)
     ap.add_argument("--output_base", required=True)
 
     ap.add_argument("--model_path", required=True)
@@ -87,33 +72,32 @@ def main() -> int:
     ap.add_argument("--trust_remote_code", action="store_true")
 
     ap.add_argument("--text_col", default="sentence")
-    ap.add_argument("--stance_col", default="STANCE",
-                    help="Column produced by 04_classify_stance containing the stance label.")
+    ap.add_argument("--keyword_col", default="matched_keywords",
+                    help="Colonne contenant l'entité/keyword ciblé par la ligne (voir step2_sentence_cutting.py).")
+    ap.add_argument("--decision_col", default="STANCE")
 
     ap.add_argument("--batch_size", type=int, default=64)
     ap.add_argument("--temperature", type=float, default=0.0)
-    ap.add_argument("--max_new_tokens", type=int, default=150)
+    ap.add_argument("--max_new_tokens", type=int, default=80)
     ap.add_argument("--max_rows", type=int, default=None,
-                    help="Limit the number of CRITICISM rows processed by the LLM. "
-                         "If omitted, all CRITICISM rows are processed.")
+                    help="Limite le nombre de lignes traitées par le LLM (ex: 300). "
+                         "Si omis, toutes les lignes sont traitées.")
     ap.add_argument("--task_id", type=int, default=None,
-                    help="Array task index (0-indexed). Falls back to SLURM_ARRAY_TASK_ID.")
+                    help="Index de la tâche array (0-indexed). Si omis, utilise SLURM_ARRAY_TASK_ID.")
     ap.add_argument("--num_tasks", type=int, default=None,
-                    help="Total number of array tasks. Falls back to SLURM_ARRAY_TASK_COUNT.")
+                    help="Nombre total de tâches array. Si omis, traite tout le dataset.")
 
     args = ap.parse_args()
 
     df = pd.read_parquet(args.input) if args.input.endswith(".parquet") else pd.read_csv(args.input)
 
-    # ── Keep only CRITICISM rows for processing (mask applied inside run_llm_dataframe) ──
-    # max_rows applies to the CRITICISM subset so the user can cap quickly
-    if args.max_rows is not None:
-        criticism_idx = df.index[df[args.stance_col].astype(str).str.strip().str.upper() == "CRITICISM"]
-        keep_idx = criticism_idx[: args.max_rows]
-        non_criticism_idx = df.index.difference(criticism_idx)
-        df = df.loc[sorted(non_criticism_idx.tolist() + keep_idx.tolist())].copy()
+    if args.keyword_col not in df.columns:
+        raise KeyError(f"Missing keyword column: {args.keyword_col}")
 
-    # ── Slicing for array jobs ────────────────────────────────────────────────
+    if args.max_rows is not None:
+        df = df.iloc[: args.max_rows].copy()
+
+    # ── Slicing pour job array ────────────────────────────────────────────────
     task_id = args.task_id
     if task_id is None and os.environ.get("SLURM_ARRAY_TASK_ID"):
         task_id = int(os.environ["SLURM_ARRAY_TASK_ID"])
@@ -127,18 +111,12 @@ def main() -> int:
         chunk_size = math.ceil(len(df) / num_tasks)
         start = task_id * chunk_size
         end = min(start + chunk_size, len(df))
-        print(
-            f"[pipeline] Array task {task_id}/{num_tasks} — rows {start}:{end} ({end - start} rows)",
-            flush=True,
-        )
+        print(f"[pipeline] Array task {task_id}/{num_tasks} — lignes {start}:{end} ({end - start} lignes)", flush=True)
         df = df.iloc[start:end].copy()
 
-    send_mask = build_sentences_to_send_mask(
-        df, sentence_col=args.text_col, stance_col=args.stance_col
-    )
-    print(f"[pipeline] CRITICISM rows to process: {int(send_mask.sum()):,} / {len(df):,}", flush=True)
+    send_mask = build_sentences_to_send_mask(df, sentence_col=args.text_col)
 
-    for col in ["target_entity", "POPULISM", "justification"]:
+    for col in ["STANCE", "justification"]:
         if col not in df.columns:
             df[col] = pd.Series(pd.NA, index=df.index, dtype="string")
         else:
@@ -165,30 +143,31 @@ def main() -> int:
         return send_mask
 
     def _build_prompt(row: pd.Series, text_col: str) -> str:
-        return populism_prompts.build_user_prompt(row, text_col=text_col)
+        return stance_prompts.build_user_prompt(row, text_col=text_col, keyword_col=args.keyword_col)
 
     def _parse(raw: str) -> dict:
-        result = parse_populism_json(raw)
+        result = parse_criticism_json(raw)
         result["raw_response"] = raw
         return result
 
     task_suffix = f"_task{task_id}" if task_id is not None else ""
     checkpoint_path = args.output_base + f"{task_suffix}_checkpoint.parquet"
 
+    # reprise depuis checkpoint si disponible
     if Path(checkpoint_path).exists():
-        print(f"[pipeline] Checkpoint found, resuming from {checkpoint_path}", flush=True)
+        print(f"[pipeline] Checkpoint trouvé, reprise depuis {checkpoint_path}", flush=True)
         df = pd.read_parquet(checkpoint_path)
 
     out = run_llm_dataframe(
         df=df,
         cfg=run_cfg,
         client=client,
-        system_prompt=populism_prompts.SYSTEM_PROMPT,
+        system_prompt=stance_prompts.SYSTEM_PROMPT,
         select_mask_fn=_select_mask,
         build_prompt_fn=_build_prompt,
         parse_fn=_parse,
-        output_cols=["target_entity", "POPULISM", "justification", "raw_response"],
-        skip_if_already_filled="POPULISM",
+        output_cols=["STANCE", "justification", "raw_response"],
+        skip_if_already_filled="STANCE",
         checkpoint_path=checkpoint_path,
         checkpoint_every=5,
     )
@@ -208,7 +187,7 @@ def main() -> int:
     if Path(checkpoint_path).exists():
         Path(checkpoint_path).unlink()
 
-    print(f"Saved: {parquet_path} and {csv_path} | CRITICISM rows sent: {int(send_mask.sum()):,}")
+    print(f"Saved: {parquet_path} and {csv_path} | Selected: {int(send_mask.sum()):,}")
     return 0
 
 

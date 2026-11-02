@@ -1,11 +1,11 @@
 #!/bin/bash -l
-#SBATCH --job-name=swissdox_pipe
+#SBATCH --job-name=step1_download
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=32G
 #SBATCH --time=24:00:00
-#SBATCH --output=logs/swissdox_%j.out
-#SBATCH --error=logs/swissdox_%j.err
+#SBATCH --output=logs/step1_download_%j.out
+#SBATCH --error=logs/step1_download_%j.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
@@ -20,7 +20,7 @@ REPO_DIR="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO"
 cd "${REPO_DIR}"
 
 # ── OUTPUT: dossier dédié à ce run (nom de l'étape + son propre job id) ────
-OUTDIR="${REPO_DIR}/data/output/01_download_job${SLURM_JOB_ID}"
+OUTDIR="${REPO_DIR}/data/output/step1_download_job${SLURM_JOB_ID}"
 mkdir -p logs "${OUTDIR}"
 
 # module/dcsrsoft scripts reference unset vars internally, so -u must stay off until after they load
@@ -38,7 +38,7 @@ which python
 export TMPDIR="/scratch/mkaiser3/tmp_${SLURM_JOB_ID}"
 mkdir -p "${TMPDIR}"
 
-python scripts/01_download.py \
+python scripts/step1_download.py \
   --start 2000-01-01 \
   --end 2014-12-31 \
   --max-results 1000000 \

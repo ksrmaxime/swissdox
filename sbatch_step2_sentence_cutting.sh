@@ -1,17 +1,17 @@
 #!/bin/bash -l
-#SBATCH --job-name=sentence_cutting
+#SBATCH --job-name=step2_sentence_cutting
 #SBATCH --partition=cpu
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=24G
 #SBATCH --time=01:00:00
-#SBATCH --output=logs/sentence_cutting_%j.out
-#SBATCH --error=logs/sentence_cutting_%j.err
+#SBATCH --output=logs/step2_sentence_cutting_%j.out
+#SBATCH --error=logs/step2_sentence_cutting_%j.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
 
-# Usage: sbatch sbatch_03_extract_sentences.sh <PREV_JOB_ID>
-# Exemple: sbatch sbatch_03_extract_sentences.sh 60015520
-# Le PREV_JOB_ID est l'ID du job de sbatch_01_download.sh
+# Usage: sbatch sbatch_step2_sentence_cutting.sh <PREV_JOB_ID>
+# Exemple: sbatch sbatch_step2_sentence_cutting.sh 60015520
+# Le PREV_JOB_ID est l'ID du job de sbatch_step1_download.sh
 
 set -eo pipefail
 
@@ -26,25 +26,25 @@ cd "$WORKDIR"
 source .venv/bin/activate
 
 # ── OUTPUT: dossier dédié à ce run (nom de l'étape + son propre job id) ────
-OUTDIR="$WORKDIR/data/output/03_extract_sentences_job${SLURM_JOB_ID}"
+OUTDIR="$WORKDIR/data/output/step2_sentence_cutting_job${SLURM_JOB_ID}"
 mkdir -p logs "$OUTDIR"
 
 echo "=== SLURM ==="
 echo "JOBID=${SLURM_JOB_ID:-<unset>} HOST=$(hostname) DATE=$(date -Is)"
 
-# ── INPUT: job id du run précédent (sbatch_01_download.sh) ────────────────
+# ── INPUT: job id du run précédent (sbatch_step1_download.sh) ────────────────
 PREV_JOB_ID="${1:-}"
 if [ -z "$PREV_JOB_ID" ]; then
-    echo "[ERROR] PREV_JOB_ID manquant. Édite la ligne PREV_JOB_ID dans ce script, ou: sbatch sbatch_03_extract_sentences.sh <PREV_JOB_ID>"
+    echo "[ERROR] PREV_JOB_ID manquant. Édite la ligne PREV_JOB_ID dans ce script, ou: sbatch sbatch_step2_sentence_cutting.sh <PREV_JOB_ID>"
     exit 1
 fi
-INPUT="$WORKDIR/data/output/01_download_job${PREV_JOB_ID}/swissdox_articles_lead.parquet"
+INPUT="$WORKDIR/data/output/step1_download_job${PREV_JOB_ID}/swissdox_articles_lead.parquet"
 OUTPUT_BASE="$OUTDIR/criticism_base"
 
 echo "INPUT       = $INPUT"
 echo "OUTPUT_BASE = $OUTPUT_BASE"
 
-python scripts/03_extract_sentences.py \
+python scripts/step2_sentence_cutting.py \
     --input  "$INPUT" \
     --output_base "$OUTPUT_BASE"
 
