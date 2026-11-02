@@ -6,20 +6,19 @@ Input  : output of step1_download.py (.csv or .parquet)
            must have a text column (default 'text', fallback 'lead')
 Output : criticism_base.csv ready to be consumed by step3a_stance_array.py
            columns: sentence_id, sentence, matched_keywords, type, sub_type,
-           keyword_abbrev, + all article metadata
+           keyword_abbrev, unit_level, unit_status, department_en,
+           unit_name_en, unit_abbrev_en, + all article metadata
 
 One output row = one sentence + one canonical keyword. A sentence that
 matches several *distinct* entities (e.g. "EDA" and "Direktion für
 Völkerrecht") is duplicated, once per entity — that duplication is expected
-and is what makes the file usable for per-entity stance/populism classification
+and is what makes the file usable for per-entity stance classification
 downstream. A sentence that matches several *aliases of the same entity*
-(e.g. "Seco" and "Staatssekretariat für Wirtschaft") produces a single row,
-keeping only the longest (spelled-out) alias — see ENTITY_GROUPS below.
+(e.g. "SECO" and "Staatssekretariat für Wirtschaft", or two declensions of the
+same name) produces a single row, keeping only the longest alias.
 
-Keywords used for sentence cutting are the same ones used to build the
-run1 Swissdox query (src/download_src.py), minus the DE_LEVEL/FR_LEVEL terms
-(fédéral, cantonal, Suisse, ...) which only serve to filter articles at query
-time and are too generic to use for sentence-level matching.
+Keywords are exactly the ones used to build the Swissdox query
+(src/download_src.py + src/federal_units_table.py).
 """
 from __future__ import annotations
 
@@ -34,74 +33,58 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
 from src.download_src import (
-    DE_TERMS, FR_TERMS, DEPARTMENTS, ADMIN_UNITS,
-    DEPARTMENTS_GROUPS, ADMIN_UNITS_GROUPS,
-    classify_keyword,
+    GENERIC_TERMS, FEDERAL_KEYWORD_FORMS,
+    classify_keyword, keyword_group, keyword_unit_metadata, norm_key,
 )
 
-# ── Keywords: generic DE/FR bureaucracy terms + departments + admin units ────
-# (kept in sync with the run1 query — see src/download_src.py)
-KW_SENT = DE_TERMS + FR_TERMS + DEPARTMENTS + ADMIN_UNITS
-
-# Groups of surface forms (abbreviation + full name, DE + FR) that denote the
-# SAME real-world entity. DE_TERMS/FR_TERMS have no aliases and are left out
-# on purpose: they become their own singleton group further down.
-ENTITY_GROUPS = DEPARTMENTS_GROUPS + ADMIN_UNITS_GROUPS
-
-
-def build_kw_pattern(keywords):
-    # Longest-first: without this, a short keyword that is a literal prefix
-    # of a longer one (e.g. "Administration" / "Administration fédérale")
-    # always wins the alternation and the longer, more specific term never
-    # gets a chance to match.
-    patterns = []
-    for k in sorted(keywords, key=len, reverse=True):
-        if k.isupper() and len(k) <= 4:
-            patterns.append(rf'\b{re.escape(k)}\b')
-        else:
-            patterns.append(re.escape(k))
-    return re.compile('|'.join(patterns), flags=re.IGNORECASE)
+# ── Mots-clés : mêmes listes que la requête Swissdox (src/download_src.py) ───
+#   - termes génériques DE/FR : insensibles à la casse, sans limite de mot
+#     (comportement historique, ex. "Bürokratieabbau" est capté)
+#   - noms d'unités fédérales (toutes déclinaisons) : insensibles à la casse,
+#     mot entier
+#   - abréviations en MAJUSCULES (EDA, SEM, DR, BAR, ...) : SENSIBLES à la casse,
+#     mot entier — sinon "DR" capterait "Dr.", "BAR" "bar", "BIT" "bit", ...
+#   - abréviations en casse mixte (Fedpol, swisstopo, armasuisse, ...) :
+#     insensibles à la casse, mot entier
+#   - ' et ’ sont interchangeables partout.
 
 
-def build_keyword_maps(kw_all, entity_groups):
-    """Map each lower-cased alias to (group_id, canonical spelling).
-
-    Aliases not part of any entity_groups tuple (DE_TERMS/FR_TERMS) become
-    their own singleton group, keyed by themselves.
-    """
-    alias_to_group = {}
-    alias_canonical = {}
-    for gid, group in enumerate(entity_groups):
-        for alias in group:
-            key = alias.lower()
-            alias_to_group[key] = gid
-            alias_canonical[key] = alias
-
-    next_gid = len(entity_groups)
-    for kw in kw_all:
-        key = kw.lower()
-        if key not in alias_to_group:
-            alias_to_group[key] = next_gid
-            alias_canonical[key] = kw
-            next_gid += 1
-
-    return alias_to_group, alias_canonical
+def _to_regex(term: str) -> str:
+    pat = re.escape(term).replace("\\ ", r"\s+")
+    return re.sub(r"['’]", "['’]", pat)
 
 
-def resolve_keywords(sent: str, kw_pattern, alias_to_group, alias_canonical) -> list[str]:
-    """Return the canonical keyword(s) matched in `sent`, one per distinct entity."""
-    raw_matches = [m for m in kw_pattern.findall(sent) if isinstance(m, str)]
-    if not raw_matches:
-        return []
+def build_keyword_index():
+    """Retourne (pattern compilé, dict norm_key(surface) -> forme canonique)."""
+    entries = []            # (surface, regex)
+    surface_to_canonical = {}
 
-    by_group: dict[int, set[str]] = {}
-    for raw in raw_matches:
-        key = raw.lower()
-        gid = alias_to_group.get(key, key)
-        canonical = alias_canonical.get(key, raw)
-        by_group.setdefault(gid, set()).add(canonical)
+    for term in GENERIC_TERMS:
+        surface_to_canonical[norm_key(term)] = term
+        entries.append((term, f"(?i:{_to_regex(term)})"))
 
-    # Within a group, keep only the longest (most spelled-out) alias found.
+    for kf in FEDERAL_KEYWORD_FORMS.values():
+        for surface in kf.surfaces:
+            surface_to_canonical[norm_key(surface)] = kf.canonical
+            core = rf"(?<!\w){_to_regex(surface)}(?!\w)"
+            case_sensitive = kf.is_abbrev and surface.upper() == surface
+            entries.append((surface, core if case_sensitive else f"(?i:{core})"))
+
+    # Plus long d'abord : "Administration fédérale des finances" doit l'emporter
+    # sur "Administration fédérale".
+    entries.sort(key=lambda e: len(e[0]), reverse=True)
+    pattern = re.compile("|".join(rx for _, rx in entries))
+    return pattern, surface_to_canonical
+
+
+def resolve_keywords(sent: str, kw_pattern, surface_to_canonical) -> list[str]:
+    """Mot(s)-clé(s) canonique(s) trouvés dans `sent`, un par entité distincte."""
+    by_group: dict[tuple, set[str]] = {}
+    for m in kw_pattern.finditer(sent):
+        canonical = surface_to_canonical.get(norm_key(m.group(0)), m.group(0))
+        by_group.setdefault(keyword_group(canonical), set()).add(canonical)
+
+    # Dans une même entité, on garde l'alias le plus long (le plus explicite).
     return sorted(max(aliases, key=len) for aliases in by_group.values())
 
 
@@ -149,7 +132,7 @@ def split_sentences(text: str) -> list[str]:
     return sentences
 
 
-def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, alias_to_group, alias_canonical) -> list[dict]:
+def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_canonical) -> list[dict]:
     """Process one chunk of articles, return list of sentence dicts. Never holds exploded df in memory.
 
     One row per (sentence, canonical keyword) pair: a sentence matching
@@ -164,7 +147,7 @@ def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, alias_to_group
             sent = sent.strip()
             if not sent or sent == "nan":
                 continue
-            keywords = resolve_keywords(sent, kw_pattern, alias_to_group, alias_canonical)
+            keywords = resolve_keywords(sent, kw_pattern, surface_to_canonical)
             for keyword in keywords:
                 kw_type, kw_sub_type, kw_abbrev = classify_keyword(keyword)
                 row = {c: article[c] for c in meta_cols}
@@ -173,6 +156,7 @@ def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, alias_to_group
                 row["type"] = kw_type
                 row["sub_type"] = kw_sub_type
                 row["keyword_abbrev"] = kw_abbrev
+                row.update(keyword_unit_metadata(keyword))
                 rows.append(row)
     return rows
 
@@ -217,8 +201,7 @@ def main() -> int:
 
     n_total = len(df_full)
 
-    kw_pattern = build_kw_pattern(KW_SENT)
-    alias_to_group, alias_canonical = build_keyword_maps(KW_SENT, ENTITY_GROUPS)
+    kw_pattern, surface_to_canonical = build_keyword_index()
 
     # ── Traitement par chunks + écriture incrémentale ─────────────────────────
     output_path = Path(f"{args.output_base}.csv")
@@ -230,7 +213,7 @@ def main() -> int:
 
     for chunk_start in range(0, n_total, args.chunk_size):
         chunk = df_full.iloc[chunk_start:chunk_start + args.chunk_size]
-        rows = process_chunk(chunk, text_col, kw_pattern, alias_to_group, alias_canonical)
+        rows = process_chunk(chunk, text_col, kw_pattern, surface_to_canonical)
 
         if not rows:
             print(f"[sentence_cutting] Chunk {chunk_start//args.chunk_size + 1}: 0 phrases", flush=True)

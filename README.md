@@ -21,8 +21,13 @@ distinctes apparaît une fois par entité.
 
 ## Code partagé (`src/`)
 
+- `federal_units_table.py` — **liste des mots-clés spécifiques** : copie de
+  « Liste des départements fédéraux.csv » (départements + offices, actuels et OLD,
+  noms FR/DE, alternatives, abréviations ; colonnes EN pour l'analyse uniquement).
+  Pour modifier les mots-clés, c'est ce fichier qu'il faut éditer.
 - `download_src.py` — client API Swissdox, construction de la requête, nettoyage du texte,
-  listes de mots-clés (termes génériques, départements, offices) et `classify_keyword`.
+  mots-clés génériques, expansion des déclinaisons (`Eidgenössische.s.n` → 3 formes),
+  variantes d'apostrophe, et `classify_keyword` / `keyword_unit_metadata`.
 - `client_src.py` — client LLM (backend `transformers` ou `vllm`).
 - `runner_src.py` — application du LLM par batch sur un DataFrame, avec checkpoints.
 - `stance_prompts.py` / `stance_config.py` — prompt de stance et sélection des lignes.
