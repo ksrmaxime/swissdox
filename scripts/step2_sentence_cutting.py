@@ -18,7 +18,7 @@ downstream. A sentence that matches several *aliases of the same entity*
 same name) produces a single row, keeping only the longest alias.
 
 Keywords are exactly the ones used to build the Swissdox query
-(src/download_src.py + src/federal_units_table.py).
+(liste complète dans src/keywords_list.py).
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
 from src.download_src import (
-    GENERIC_TERMS, FEDERAL_KEYWORD_FORMS,
+    GENERIC_TERM_FORMS, FEDERAL_KEYWORD_FORMS,
     classify_keyword, keyword_group, keyword_unit_metadata, norm_key,
 )
 
@@ -59,9 +59,10 @@ def build_keyword_index():
     entries = []            # (surface, regex)
     surface_to_canonical = {}
 
-    for term in GENERIC_TERMS:
-        surface_to_canonical[norm_key(term)] = term
-        entries.append((term, f"(?i:{_to_regex(term)})"))
+    for canonical, surfaces in GENERIC_TERM_FORMS.items():
+        for surface in surfaces:
+            surface_to_canonical[norm_key(surface)] = canonical
+            entries.append((surface, f"(?i:{_to_regex(surface)})"))
 
     for kf in FEDERAL_KEYWORD_FORMS.values():
         for surface in kf.surfaces:

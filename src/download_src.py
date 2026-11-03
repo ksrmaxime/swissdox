@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import html
-import itertools
 import os
 import re
 import time
@@ -27,32 +26,16 @@ DEFAULT_COLUMNS = [
 ]
 
 # -----------------------------
-# Mots-clés GÉNÉRIQUES (inchangés)
-# -----------------------------
-DE_TERMS = [
-    "öffentliche Verwaltung", "Bundesverwaltung", "Staatsverwaltung", "Bürokratie",
-]
-FR_TERMS = [
-    "Administration publique", "Administration fédérale", "Administration d'état", "Bureaucratie",
-]
-GENERIC_TERMS: List[str] = DE_TERMS + FR_TERMS
-BUREAUCRACY_TERMS: List[str] = ["Bürokratie", "Bureaucratie"]
-PUBLIC_ADMIN_TERMS: List[str] = [t for t in GENERIC_TERMS if t not in BUREAUCRACY_TERMS]
-
-
-# -----------------------------
-# Mots-clés SPÉCIFIQUES : unités fédérales
-# Source : src/federal_units_table.py (= "Liste des départements fédéraux.csv").
-#   - tous les noms FR/DE, noms alternatifs ("/"-séparés) et abréviations sont utilisés,
-#     y compris les unités OLD ;
-#   - "Eidgenössische.s.n" est développé en toutes ses déclinaisons ;
-#   - chaque terme contenant une apostrophe est ajouté avec ' ET ’ ;
-#   - les colonnes EN ne servent qu'aux métadonnées d'analyse.
+# Mots-clés : tout est défini en toutes lettres dans src/keywords_list.py
+# (génériques + unités fédérales, déclinaisons allemandes comprises).
+# Ce module ne fait que :
+#   - ajouter l'autre apostrophe (' <-> ’) aux termes qui en contiennent une ;
+#   - indexer les formes pour la requête Swissdox et pour le step 2.
 # -----------------------------
 try:  # src/ sur le sys.path (pip install -e .)
-    from federal_units_table import FIELDS as _FU_FIELDS, FEDERAL_UNITS_RAW as _FU_RAW  # noqa: E402
+    from keywords_list import GENERIC_KEYWORDS, FEDERAL_UNITS as _FEDERAL_UNITS_LIST  # noqa: E402
 except ImportError:  # import via le package "src"
-    from src.federal_units_table import FIELDS as _FU_FIELDS, FEDERAL_UNITS_RAW as _FU_RAW  # noqa: E402
+    from src.keywords_list import GENERIC_KEYWORDS, FEDERAL_UNITS as _FEDERAL_UNITS_LIST  # noqa: E402
 
 _APOSTROPHES = ("'", "’")
 
@@ -66,26 +49,6 @@ def norm_key(s: str) -> str:
     return _norm_spaces(s).replace("’", "'").lower()
 
 
-def _split_alternatives(cell: str) -> List[str]:
-    return [_norm_spaces(p) for p in (cell or "").split(" / ") if _norm_spaces(p)]
-
-
-def expand_declensions(name: str) -> List[str]:
-    """'Eidgenössische.s.n Departement.s X' -> toutes les combinaisons.
-
-    Un mot 'base.a.b' donne : base, base+a, base+b. La 1re forme renvoyée est la
-    forme de base (sans terminaison), utilisée comme forme canonique.
-    """
-    options: List[List[str]] = []
-    for tok in _norm_spaces(name).split(" "):
-        parts = tok.split(".")
-        if len(parts) > 1 and parts[0] and all(p.isalpha() and p.islower() and len(p) <= 3 for p in parts[1:]):
-            options.append([parts[0]] + [parts[0] + suf for suf in parts[1:]])
-        else:
-            options.append([tok])
-    return [" ".join(combo) for combo in itertools.product(*options)]
-
-
 def apostrophe_variants(term: str) -> List[str]:
     if not any(a in term for a in _APOSTROPHES):
         return [term]
@@ -93,6 +56,17 @@ def apostrophe_variants(term: str) -> List[str]:
     return [base, base.replace("'", "’")]
 
 
+# ── Génériques ────────────────────────────────────────────────────────────────
+GENERIC_SUBTYPES: Dict[str, str] = {base: sub for base, (sub, _) in GENERIC_KEYWORDS.items()}
+GENERIC_TERM_FORMS: Dict[str, List[str]] = {
+    base: list(dict.fromkeys(a for f in forms for a in apostrophe_variants(_norm_spaces(f))))
+    for base, (_, forms) in GENERIC_KEYWORDS.items()
+}
+GENERIC_TERMS: List[str] = list(GENERIC_TERM_FORMS)            # formes de base
+GENERIC_QUERY_TERMS: List[str] = [v for vs in GENERIC_TERM_FORMS.values() for v in vs]
+
+
+# ── Unités fédérales ──────────────────────────────────────────────────────────
 @dataclass
 class FederalUnit:
     unit_id: int
@@ -100,8 +74,6 @@ class FederalUnit:
     status: str           # "current" | "OLD"
     department_en: str    # code EN du département parent (FDFA, FDHA, ...)
     department: str       # label DE/FR du département parent (ex. "EDA/DFAE"), format historique de sub_type
-    name_fr: str
-    name_de: str
     name_en: str
     abbrev_en: str
     abbrev_fr: str
@@ -110,7 +82,7 @@ class FederalUnit:
 
 @dataclass
 class KeywordForm:
-    canonical: str            # forme de base (ex. "Eidgenössische Departement des Innern")
+    canonical: str            # forme de référence (1re forme du nom)
     is_abbrev: bool
     lang: str                 # "fr" | "de"
     unit_ids: set             # unités désignées par ce terme (plusieurs si terme partagé)
@@ -118,45 +90,42 @@ class KeywordForm:
 
 
 def _build_federal_units():
-    rows = [dict(zip(_FU_FIELDS, r)) for r in _FU_RAW]
-
-    # Label "DE/FR" de chaque département (ex. FDFA -> "EDA/DFAE")
     dept_label = {
-        r["upper_level"]: f'{r["abbr_de"]}/{r["abbr_fr"]}'
-        for r in rows if r["type"] == "Federal Department"
+        u["upper_level"]: f'{u["de_abbrev"]}/{u["fr_abbrev"]}'
+        for u in _FEDERAL_UNITS_LIST if u["type"] == "Federal Department"
     }
-
     units: List[FederalUnit] = []
     forms: Dict[str, KeywordForm] = {}   # clé = norm_key(canonical)
 
-    def add(name: str, *, is_abbrev: bool, lang: str, uid: int) -> None:
-        variants = [name] if is_abbrev else expand_declensions(name)
+    def add(variants: List[str], *, is_abbrev: bool, lang: str, uid: int) -> None:
+        variants = [_norm_spaces(v) for v in variants if _norm_spaces(v)]
+        if not variants:
+            return
         canonical = variants[0]
-        key = norm_key(canonical)
-        kf = forms.get(key)
+        kf = forms.get(norm_key(canonical))
         if kf is None:
-            kf = forms[key] = KeywordForm(canonical, is_abbrev, lang, set(), set())
+            kf = forms[norm_key(canonical)] = KeywordForm(canonical, is_abbrev, lang, set(), set())
         kf.unit_ids.add(uid)
         for v in variants:
             kf.surfaces.update(apostrophe_variants(v))
 
-    for uid, r in enumerate(rows):
-        status = "OLD" if r["type"].upper().startswith("OLD") else "current"
-        level = "department" if "department" in r["type"].lower() else "office"
+    for uid, u in enumerate(_FEDERAL_UNITS_LIST):
         units.append(FederalUnit(
-            unit_id=uid, level=level, status=status,
-            department_en=r["upper_level"], department=dept_label.get(r["upper_level"], r["upper_level"]),
-            name_fr=_norm_spaces(r["nom_fr"]), name_de=_norm_spaces(expand_declensions(r["nom_de"])[0]) if r["nom_de"] else "",
-            name_en=_norm_spaces(r["nom_en"]), abbrev_en=_norm_spaces(r["abbr_en"]),
-            abbrev_fr=_norm_spaces(r["abbr_fr"]), abbrev_de=_norm_spaces(r["abbr_de"]),
+            unit_id=uid,
+            level="department" if "department" in u["type"].lower() else "office",
+            status="OLD" if u["type"].upper().startswith("OLD") else "current",
+            department_en=u["upper_level"],
+            department=dept_label.get(u["upper_level"], u["upper_level"]),
+            name_en=u["en_name"], abbrev_en=u["en_abbrev"],
+            abbrev_fr=u["fr_abbrev"], abbrev_de=u["de_abbrev"],
         ))
+        for name in u["fr_names"]:
+            add([name], is_abbrev=False, lang="fr", uid=uid)
+        for declined in u["de_names"]:
+            add(declined, is_abbrev=False, lang="de", uid=uid)
         for lang in ("fr", "de"):
-            for col in (f"nom_{lang}", f"alt_nom_{lang}"):
-                for name in _split_alternatives(r[col]):
-                    add(name, is_abbrev=False, lang=lang, uid=uid)
-            for col in (f"abbr_{lang}", f"alt_abbr_{lang}"):
-                for ab in _split_alternatives(r[col]):
-                    add(ab, is_abbrev=True, lang=lang, uid=uid)
+            for ab in [u[f"{lang}_abbrev"]] + u[f"{lang}_alt_abbrevs"]:
+                add([ab], is_abbrev=True, lang=lang, uid=uid)
     return units, forms
 
 
@@ -183,7 +152,7 @@ def keyword_group(canonical: str):
 def classify_keyword(keyword: str) -> tuple[str, str, str]:
     """Return (type, sub_type, abbrev) for a canonical keyword string.
 
-    type    : "generic" (DE_TERMS/FR_TERMS) or "specific" (unité fédérale)
+    type    : "generic" (GENERIC_KEYWORDS) or "specific" (unité fédérale)
     sub_type: "Public Admin", "bureaucracy", le label du département parent
               (ex. "VBS/DDPS"), ou "ambiguous" si le terme désigne plusieurs
               unités de départements différents (ex. "Generalsekretariat")
@@ -204,10 +173,8 @@ def classify_keyword(keyword: str) -> tuple[str, str, str]:
         else:
             abbrev = kf.canonical
         return "specific", sub_type, abbrev
-    if keyword in BUREAUCRACY_TERMS:
-        return "generic", "bureaucracy", keyword
-    if keyword in PUBLIC_ADMIN_TERMS:
-        return "generic", "Public Admin", keyword
+    if keyword in GENERIC_SUBTYPES:
+        return "generic", GENERIC_SUBTYPES[keyword], keyword
     return "unknown", "unknown", keyword
 
 
@@ -255,8 +222,7 @@ def build_query_payload(
         "languages": languages,
         "content": {
             "OR": [
-                {"OR": DE_TERMS},
-                {"OR": FR_TERMS},
+                {"OR": GENERIC_QUERY_TERMS},
                 {"OR": FEDERAL_UNIT_TERMS},
             ]
         },
