@@ -6,6 +6,9 @@ Tout est écrit en toutes lettres, déclinaisons allemandes comprises : ce qui
 figure ici est exactement ce qui est envoyé à Swissdox (step 1) et cherché dans
 les phrases (step 2). Pour ajouter / retirer un mot-clé, modifier ce fichier.
 
+Swissdox respecte les majuscules et les accents : chaque graphie doit donc être
+écrite ici (ex. "administration fédérale" ET "Administration fédérale").
+
 Seule transformation automatique : chaque terme contenant une apostrophe est
 aussi cherché avec l'autre apostrophe (' <-> ’).
 
@@ -32,29 +35,42 @@ GENERIC_KEYWORDS = {
     'Bürokraten': ('bureaucracy', ['Bürokraten']),
     'Bürokratinnen': ('bureaucracy', ['Bürokratinnen']),
     'Beamte': ('Public Admin', ['Beamte', 'Beamten']),  # Beamte.n
-    'Administration publique': ('Public Admin', ['Administration publique']),
-    'Administration fédérale': ('Public Admin', ['Administration fédérale']),
-    "Administration d'état": ('Public Admin', ["Administration d'état"]),
-    'Bureaucratie': ('bureaucracy', ['Bureaucratie']),
-    'bureaucrates': ('bureaucracy', ['bureaucrates']),
-    'fonctionnaires': ('Public Admin', ['fonctionnaires']),
+    'Administration publique': ('Public Admin', ['Administration publique', 'administration publique']),
+    'Administration fédérale': ('Public Admin', ['Administration fédérale', 'administration fédérale']),
+    "Administration d'état": ('Public Admin', [
+        "Administration d'état", "Administration d'État", "Administration d'Etat",
+        "administration d'état", "administration d'État", "administration d'Etat",
+    ]),
+    'Bureaucratie': ('bureaucracy', ['Bureaucratie', 'bureaucratie']),
+    'bureaucrates': ('bureaucracy', ['bureaucrates', 'Bureaucrates']),
+    'fonctionnaires': ('Public Admin', ['fonctionnaires', 'Fonctionnaires']),
 }
 
 # ════════════════════════════════════════════════════════════════════════════
 # MOTS-CLÉS SPÉCIFIQUES : UNITÉS FÉDÉRALES (une entrée = une unité)
 #   type / upper_level / en_* : métadonnées pour l'analyse (EN jamais cherché)
-#   fr_names    : noms français (principal + alternatives)
+#   fr_names    : noms français ; chaque sous-liste = un nom avec TOUTES ses
+#                 variantes (majuscule / minuscule initiale ; État / Etat / état),
+#                 la 1re forme étant la forme de référence
 #   de_names    : noms allemands ; chaque sous-liste = un nom avec TOUTES ses
 #                 déclinaisons, la 1re forme étant la forme de référence
 #   *_abbrev    : abréviation principale (sert de keyword_abbrev)
 #   *_alt_abbrevs : abréviations alternatives
+#   abbrev_case_variants : autres graphies d'une abréviation, rattachées à elle
+#                 (ex. 'SECO' -> ['Seco'] ; 'Fedpol' -> ['fedpol', 'FEDPOL']).
+#                 Règle : abréviation en majuscules de 4 lettres ou plus -> forme
+#                 avec seule l'initiale en majuscule, sauf OFEN (« Ofen » = four),
+#                 ZIVI (« Zivi » = un civiliste) et OFCOM (« Ofcom » = régulateur
+#                 britannique). Les abréviations de 2-3 lettres restent en majuscules.
 # ════════════════════════════════════════════════════════════════════════════
 FEDERAL_UNITS = [
     # ──────────────── FDFA ────────────────
     {
         "type": 'Federal Department', "upper_level": 'FDFA',
         "en_name": 'Federal Department of Foreign Affairs', "en_abbrev": 'FDFA',
-        "fr_names": ['Département fédéral des affaires étrangères'],
+        "fr_names": [
+            ['Département fédéral des affaires étrangères', 'département fédéral des affaires étrangères'],
+        ],
         "fr_abbrev": 'DFAE', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.s.n Departement.s für auswärtige Angelegenheiten
@@ -66,12 +82,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'EDA', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'DFAE': ['Dfae']},
     },
     # ──────────────── FDHA ────────────────
     {
         "type": 'Federal Department', "upper_level": 'FDHA',
         "en_name": 'Federal Department of Home Affairs', "en_abbrev": 'FDHA',
-        "fr_names": ["Département fédéral de l'intérieur"],
+        "fr_names": [
+            ["Département fédéral de l'intérieur", "département fédéral de l'intérieur"],
+        ],
         "fr_abbrev": 'DFI', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.s.n Departement.s des Innern
@@ -83,12 +102,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'EDI', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     # ──────────────── FDJP ────────────────
     {
         "type": 'Federal Department', "upper_level": 'FDJP',
         "en_name": 'Federal Department of Justice and Police', "en_abbrev": 'FDJP',
-        "fr_names": ['Département fédéral de justice et police'],
+        "fr_names": [
+            ['Département fédéral de justice et police', 'département fédéral de justice et police'],
+        ],
         "fr_abbrev": 'DFJP', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.s.n Justiz- und Polizeidepartement.s
@@ -100,12 +122,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'EJPD', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'DFJP': ['Dfjp'], 'EJPD': ['Ejpd']},
     },
     # ──────────────── DDPS ────────────────
     {
         "type": 'Federal Department', "upper_level": 'DDPS',
         "en_name": 'Federal Department of Defence, Civil Protection and Sport', "en_abbrev": 'DDPS',
-        "fr_names": ['Département fédéral de la défense, de la protection de la population et des sports'],
+        "fr_names": [
+            ['Département fédéral de la défense, de la protection de la population et des sports', 'département fédéral de la défense, de la protection de la population et des sports'],
+        ],
         "fr_abbrev": 'DDPS', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.s.n Departement.s für Verteidigung, Bevölkerungsschutz und Sport
@@ -117,12 +142,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'VBS', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'DDPS': ['Ddps']},
     },
     # ──────────────── FDF ────────────────
     {
         "type": 'Federal Department', "upper_level": 'FDF',
         "en_name": 'Federal Department of Finance', "en_abbrev": 'FDF',
-        "fr_names": ['Département fédéral des finances'],
+        "fr_names": [
+            ['Département fédéral des finances', 'département fédéral des finances'],
+        ],
         "fr_abbrev": 'DFF', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.s.n Finanzdepartement.s
@@ -134,12 +162,16 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'EFD', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     # ──────────────── EAER ────────────────
     {
         "type": 'Federal Department', "upper_level": 'EAER',
         "en_name": 'Federal Department of Economic Affairs, Education and Research', "en_abbrev": 'EAER',
-        "fr_names": ["Département fédéral de l'économie, de la formation et de la recherche", 'Département fédéral de l’économie'],
+        "fr_names": [
+            ["Département fédéral de l'économie, de la formation et de la recherche", "département fédéral de l'économie, de la formation et de la recherche"],
+            ['Département fédéral de l’économie', 'département fédéral de l’économie'],
+        ],
         "fr_abbrev": 'DEFR', "fr_alt_abbrevs": ['DFE'],
         "de_names": [
             # Eidgenössische.s.n Departement.s für Wirtschaft, Bildung und Forschung
@@ -158,12 +190,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'WBF', "de_alt_abbrevs": ['EVD'],
+        "abbrev_case_variants": {'DEFR': ['Defr']},
     },
     # ──────────────── DETEC ────────────────
     {
         "type": 'Federal Department', "upper_level": 'DETEC',
         "en_name": 'Federal Department of the Environment, Transport, Energy and Communications', "en_abbrev": 'DETEC',
-        "fr_names": ["Département fédéral de l'environnement, des transports, de l'énergie et de la communication"],
+        "fr_names": [
+            ["Département fédéral de l'environnement, des transports, de l'énergie et de la communication", "département fédéral de l'environnement, des transports, de l'énergie et de la communication"],
+        ],
         "fr_abbrev": 'DETEC', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.s.n Departement.s für Umwelt, Verkehr, Energie und Kommunikation
@@ -175,12 +210,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'UVEK', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'DETEC': ['Detec'], 'UVEK': ['Uvek']},
     },
     # ──────────────── FDFA ────────────────
     {
         "type": 'Federal Offices', "upper_level": 'FDFA',
         "en_name": 'General Secretariat', "en_abbrev": 'GS-FDFA',
-        "fr_names": ['Secrétariat général'],
+        "fr_names": [
+            ['Secrétariat général', 'secrétariat général'],
+        ],
         "fr_abbrev": 'SG-DFAE', "fr_alt_abbrevs": [],
         "de_names": [
             # Generalsekretariat.s
@@ -190,11 +228,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'GS-EDA', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDFA',
         "en_name": 'FDFA State Secretariat', "en_abbrev": 'FDFA-STS',
-        "fr_names": ['Secrétariat d’Etat du DFAE', 'Secrétariat d’Etat'],
+        "fr_names": [
+            ['Secrétariat d’Etat du DFAE', 'secrétariat d’Etat du DFAE', 'Secrétariat d’État du DFAE', 'secrétariat d’État du DFAE', 'Secrétariat d’état du DFAE', 'secrétariat d’état du DFAE'],
+            ['Secrétariat d’Etat', 'secrétariat d’Etat', 'Secrétariat d’État', 'secrétariat d’État', 'Secrétariat d’état', 'secrétariat d’état'],
+        ],
         "fr_abbrev": 'SEE-DFAE', "fr_alt_abbrevs": ['SEE'],
         "de_names": [
             # Staatssekretariat.s EDA
@@ -209,42 +251,55 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'STS-EDA', "de_alt_abbrevs": ['STS'],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDFA',
         "en_name": 'Directorate of International Law', "en_abbrev": 'DIL',
-        "fr_names": ['Direction du droit international public'],
+        "fr_names": [
+            ['Direction du droit international public', 'direction du droit international public'],
+        ],
         "fr_abbrev": 'DDIP', "fr_alt_abbrevs": [],
         "de_names": [
             ['Direktion für Völkerrecht'],
         ],
         "de_abbrev": 'DV', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'DDIP': ['Ddip']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDFA',
         "en_name": 'Swiss Agency for Development and Cooperation', "en_abbrev": 'SDC',
-        "fr_names": ['Direction du développement et de la coopération'],
+        "fr_names": [
+            ['Direction du développement et de la coopération', 'direction du développement et de la coopération'],
+        ],
         "fr_abbrev": 'DDC', "fr_alt_abbrevs": [],
         "de_names": [
             ['Direktion für Entwicklung und Zusammenarbeit'],
         ],
         "de_abbrev": 'DEZA', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'DEZA': ['Deza']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDFA',
         "en_name": 'Directorate for Resources', "en_abbrev": 'DR',
-        "fr_names": ['Direction des ressources', 'Direction des ressources et du réseau extérieur'],
+        "fr_names": [
+            ['Direction des ressources', 'direction des ressources'],
+            ['Direction des ressources et du réseau extérieur', 'direction des ressources et du réseau extérieur'],
+        ],
         "fr_abbrev": 'DR', "fr_alt_abbrevs": [],
         "de_names": [
             ['Direktion für Ressourcen'],
             ['Direktion für Ressourcen und Aussennetz'],
         ],
         "de_abbrev": 'DR', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDFA',
         "en_name": 'Consular Directorate', "en_abbrev": 'CD',
-        "fr_names": ['Direction consulaire'],
+        "fr_names": [
+            ['Direction consulaire', 'direction consulaire'],
+        ],
         "fr_abbrev": 'DC', "fr_alt_abbrevs": [],
         "de_names": [
             # Konsularische.n Direktion
@@ -254,11 +309,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'KD', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'FDFA',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Direction politique'],
+        "fr_names": [
+            ['Direction politique', 'direction politique'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             # Politische.n Direktion
@@ -268,22 +326,28 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'FDFA',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Direction des affaires européennes'],
+        "fr_names": [
+            ['Direction des affaires européennes', 'direction des affaires européennes'],
+        ],
         "fr_abbrev": 'DAE', "fr_alt_abbrevs": [],
         "de_names": [
             ['Direktion für europäische Angelegenheiten'],
         ],
         "de_abbrev": 'DEA', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     # ──────────────── FDHA ────────────────
     {
         "type": 'Federal Offices', "upper_level": 'FDHA',
         "en_name": 'General Secretariat', "en_abbrev": 'GS-FDHA',
-        "fr_names": ['Secrétariat général'],
+        "fr_names": [
+            ['Secrétariat général', 'secrétariat général'],
+        ],
         "fr_abbrev": 'SG-DFI', "fr_alt_abbrevs": [],
         "de_names": [
             # Generalsekretariat.s
@@ -293,11 +357,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'GS-EDI', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDHA',
         "en_name": 'Federal Office for Gender Equality', "en_abbrev": 'FOGE',
-        "fr_names": ['Bureau fédéral de l’égalité entre femmes et hommes'],
+        "fr_names": [
+            ['Bureau fédéral de l’égalité entre femmes et hommes', 'bureau fédéral de l’égalité entre femmes et hommes'],
+        ],
         "fr_abbrev": 'BFEG', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.s.n Büro.s für die Gleichstellung von Frau und Mann
@@ -309,11 +376,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'EBG', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'BFEG': ['Bfeg']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDHA',
         "en_name": 'Federal Office of Culture', "en_abbrev": 'FOC',
-        "fr_names": ['Office fédéral de la culture'],
+        "fr_names": [
+            ['Office fédéral de la culture', 'office fédéral de la culture'],
+        ],
         "fr_abbrev": 'OFC', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Kultur
@@ -324,11 +394,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BAK', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDHA',
         "en_name": 'Swiss Federal Archives', "en_abbrev": 'SFA',
-        "fr_names": ['Archives fédérales suisses'],
+        "fr_names": [
+            ['Archives fédérales suisses', 'archives fédérales suisses'],
+        ],
         "fr_abbrev": 'AFS', "fr_alt_abbrevs": [],
         "de_names": [
             # Schweizerische.s.n Bundesarchiv.s
@@ -340,11 +413,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BAR', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDHA',
         "en_name": 'Federal Office of Meteorology and Climatology', "en_abbrev": 'MeteoSwiss',
-        "fr_names": ['Office fédéral de météorologie et de climatologie'],
+        "fr_names": [
+            ['Office fédéral de météorologie et de climatologie', 'office fédéral de météorologie et de climatologie'],
+        ],
         "fr_abbrev": 'MétéoSuisse', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Meteorologie und Klimatologie
@@ -355,11 +431,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'MeteoSchweiz', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'MétéoSuisse': ['MÉTÉOSUISSE', 'Météosuisse', 'Météo-Suisse', 'MeteoSuisse'], 'MeteoSchweiz': ['METEOSCHWEIZ', 'Meteoschweiz', 'Meteo-Schweiz']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDHA',
         "en_name": 'Federal Office of Public Health', "en_abbrev": 'FOPH',
-        "fr_names": ['Office fédéral de la santé publique'],
+        "fr_names": [
+            ['Office fédéral de la santé publique', 'office fédéral de la santé publique'],
+        ],
         "fr_abbrev": 'OFSP', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Gesundheit
@@ -370,11 +449,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BAG', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFSP': ['Ofsp']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDHA',
         "en_name": 'Federal Statistical Office', "en_abbrev": 'FSO',
-        "fr_names": ['Office fédéral de la statistique'],
+        "fr_names": [
+            ['Office fédéral de la statistique', 'office fédéral de la statistique'],
+        ],
         "fr_abbrev": 'OFS', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Statistik
@@ -385,11 +467,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BFS', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDHA',
         "en_name": 'Federal Social Insurance Office', "en_abbrev": 'FSIO',
-        "fr_names": ['Office fédéral des assurances sociales'],
+        "fr_names": [
+            ['Office fédéral des assurances sociales', 'office fédéral des assurances sociales'],
+        ],
         "fr_abbrev": 'OFAS', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Sozialversicherungen
@@ -400,11 +485,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BSV', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFAS': ['Ofas']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDHA',
         "en_name": 'Federal Food Safety and Veterinary Office', "en_abbrev": 'FSVO',
-        "fr_names": ['Office fédéral de la sécurité alimentaire et des affaires vétérinaires'],
+        "fr_names": [
+            ['Office fédéral de la sécurité alimentaire et des affaires vétérinaires', 'office fédéral de la sécurité alimentaire et des affaires vétérinaires'],
+        ],
         "fr_abbrev": 'OSAV', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Lebensmittelsicherheit und Veterinärwesen
@@ -415,11 +503,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BLV', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OSAV': ['Osav']},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'FDHA',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Office fédéral de l’assurance militaire'],
+        "fr_names": [
+            ['Office fédéral de l’assurance militaire', 'office fédéral de l’assurance militaire'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Militärversicherung
@@ -430,11 +521,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'FDHA',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Groupement de la science et de la recherche', 'Secrétariat d’Etat à l’éducation et à la recherche'],
+        "fr_names": [
+            ['Groupement de la science et de la recherche', 'groupement de la science et de la recherche'],
+            ['Secrétariat d’Etat à l’éducation et à la recherche', 'secrétariat d’Etat à l’éducation et à la recherche', 'Secrétariat d’État à l’éducation et à la recherche', 'secrétariat d’État à l’éducation et à la recherche', 'Secrétariat d’état à l’éducation et à la recherche', 'secrétariat d’état à l’éducation et à la recherche'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             ['Gruppe für Wissenschaft und Forschung'],
@@ -445,12 +540,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     # ──────────────── FDJP ────────────────
     {
         "type": 'Federal Offices', "upper_level": 'FDJP',
         "en_name": 'General Secretariat', "en_abbrev": 'GS-FDJP',
-        "fr_names": ['Secrétariat général'],
+        "fr_names": [
+            ['Secrétariat général', 'secrétariat général'],
+        ],
         "fr_abbrev": 'SG-DFJP', "fr_alt_abbrevs": [],
         "de_names": [
             # Generalsekretariat.s
@@ -460,11 +558,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'GS-EJPD', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDJP',
         "en_name": 'Federal office of Justice', "en_abbrev": 'FOJ',
-        "fr_names": ['Office fédéral de la justice'],
+        "fr_names": [
+            ['Office fédéral de la justice', 'office fédéral de la justice'],
+        ],
         "fr_abbrev": 'OFJ', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Justiz
@@ -475,11 +576,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BJ', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDJP',
         "en_name": 'Federal Office of Police', "en_abbrev": 'Fedpol',
-        "fr_names": ['Office fédéral de la police'],
+        "fr_names": [
+            ['Office fédéral de la police', 'office fédéral de la police'],
+        ],
         "fr_abbrev": 'Fedpol', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Polizei
@@ -490,11 +594,17 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'Fedpol', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'Fedpol': ['fedpol', 'FEDPOL', 'FedPol']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDJP',
         "en_name": 'State Secretariat for  Migration', "en_abbrev": 'SEM',
-        "fr_names": ["Secrétariat d'état aux migrations", 'Office fédéral des étrangers', 'Office fédéral des réfugiés', 'Office fédéral des migrations'],
+        "fr_names": [
+            ["Secrétariat d'état aux migrations", "secrétariat d'état aux migrations", "Secrétariat d'État aux migrations", "secrétariat d'État aux migrations", "Secrétariat d'Etat aux migrations", "secrétariat d'Etat aux migrations"],
+            ['Office fédéral des étrangers', 'office fédéral des étrangers'],
+            ['Office fédéral des réfugiés', 'office fédéral des réfugiés'],
+            ['Office fédéral des migrations', 'office fédéral des migrations'],
+        ],
         "fr_abbrev": 'SEM', "fr_alt_abbrevs": ['ODM'],
         "de_names": [
             # Staatssekretariat.s für Migration
@@ -522,11 +632,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'SEM', "de_alt_abbrevs": ['BFM'],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'FDJP',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Office fédéral des assurances privées'],
+        "fr_names": [
+            ['Office fédéral des assurances privées', 'office fédéral des assurances privées'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Privatversicherungen
@@ -537,11 +650,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'FDJP',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Office fédéral de métrologie'],
+        "fr_names": [
+            ['Office fédéral de métrologie', 'office fédéral de métrologie'],
+        ],
         "fr_abbrev": 'METAS', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.s.n Institut.s für Metrologie
@@ -561,12 +677,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'METAS', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'METAS': ['Metas']},
     },
     # ──────────────── DDPS ────────────────
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'General Secretariat', "en_abbrev": 'GS-DDPS',
-        "fr_names": ['Secrétariat général'],
+        "fr_names": [
+            ['Secrétariat général', 'secrétariat général'],
+        ],
         "fr_abbrev": 'SG-DDPS', "fr_alt_abbrevs": [],
         "de_names": [
             # Generalsekretariat.s
@@ -576,11 +695,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'GS-VBS', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'State Secretariat for Security Policy', "en_abbrev": 'SEPOS',
-        "fr_names": ["Secrétariat d'Etat à la politique de sécurité", 'Direction de la politique de sécurité'],
+        "fr_names": [
+            ["Secrétariat d'Etat à la politique de sécurité", "secrétariat d'Etat à la politique de sécurité", "Secrétariat d'État à la politique de sécurité", "secrétariat d'État à la politique de sécurité", "Secrétariat d'état à la politique de sécurité", "secrétariat d'état à la politique de sécurité"],
+            ['Direction de la politique de sécurité', 'direction de la politique de sécurité'],
+        ],
         "fr_abbrev": 'SEPOS', "fr_alt_abbrevs": [],
         "de_names": [
             # Staatssekretariat.s für Sicherheitspolitik
@@ -591,11 +714,15 @@ FEDERAL_UNITS = [
             ['Direktion für Sicherheitspolitik'],
         ],
         "de_abbrev": 'SEPOS', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'SEPOS': ['Sepos']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'Federal Intelligence Service', "en_abbrev": 'FIS',
-        "fr_names": ['Service de renseignement de la Confédération', 'Direction du Renseignement stratégique'],
+        "fr_names": [
+            ['Service de renseignement de la Confédération', 'service de renseignement de la Confédération'],
+            ['Direction du Renseignement stratégique', 'direction du Renseignement stratégique'],
+        ],
         "fr_abbrev": 'SRC', "fr_alt_abbrevs": [],
         "de_names": [
             # Nachrichtendienst.es des Bundes
@@ -609,11 +736,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'NDB', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'Office of the Armed Force Attorney General', "en_abbrev": 'OAFAG',
-        "fr_names": ['Office de l’auditeur en chef'],
+        "fr_names": [
+            ['Office de l’auditeur en chef', 'office de l’auditeur en chef'],
+        ],
         "fr_abbrev": 'OAC', "fr_alt_abbrevs": [],
         "de_names": [
             # Oberauditorat.s
@@ -623,21 +753,29 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'OA', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'Defence Group', "en_abbrev": '',
-        "fr_names": ['Groupement Défense'],
+        "fr_names": [
+            ['Groupement Défense', 'groupement Défense'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             ['Gruppe Verteidigung'],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'Federal Office for Defence Procurement', "en_abbrev": 'armasuisse',
-        "fr_names": ['Office fédéral de l’armement', 'Groupement de l’armement', 'Groupement armasuisse'],
+        "fr_names": [
+            ['Office fédéral de l’armement', 'office fédéral de l’armement'],
+            ['Groupement de l’armement', 'groupement de l’armement'],
+            ['Groupement armasuisse', 'groupement armasuisse'],
+        ],
         "fr_abbrev": 'armasuisse', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Rüstung
@@ -650,11 +788,14 @@ FEDERAL_UNITS = [
             ['Gruppe armasuisse'],
         ],
         "de_abbrev": 'armasuisse', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'armasuisse': ['Armasuisse', 'ARMASUISSE', 'ArmaSuisse']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'Federal Office of Topography', "en_abbrev": 'swisstopo',
-        "fr_names": ['Office fédéral de topographie'],
+        "fr_names": [
+            ['Office fédéral de topographie', 'office fédéral de topographie'],
+        ],
         "fr_abbrev": 'swisstopo', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Landestopografie
@@ -665,11 +806,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'swisstopo', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'swisstopo': ['Swisstopo', 'SWISSTOPO', 'SwissTopo']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'Federal Office for Civil Protection', "en_abbrev": 'FOCP',
-        "fr_names": ['Office fédéral de la protection de la population', 'Office fédéral de la protection civile'],
+        "fr_names": [
+            ['Office fédéral de la protection de la population', 'office fédéral de la protection de la population'],
+            ['Office fédéral de la protection civile', 'office fédéral de la protection civile'],
+        ],
         "fr_abbrev": 'OFPP', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Bevölkerungsschutz
@@ -686,11 +831,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BABS', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFPP': ['Ofpp'], 'BABS': ['Babs']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'Federal Office of Sport', "en_abbrev": 'FOSPO',
-        "fr_names": ['Office fédéral du sport'],
+        "fr_names": [
+            ['Office fédéral du sport', 'office fédéral du sport'],
+        ],
         "fr_abbrev": 'OFSPO', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Sport
@@ -701,11 +849,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BASPO', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFSPO': ['Ofspo'], 'BASPO': ['Baspo']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DDPS',
         "en_name": 'National Cyber Security Centre', "en_abbrev": 'NCSC',
-        "fr_names": ['Office fédéral de la cybersécurité'],
+        "fr_names": [
+            ['Office fédéral de la cybersécurité', 'office fédéral de la cybersécurité'],
+        ],
         "fr_abbrev": 'OFCS', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Cybersicherheit
@@ -716,21 +867,27 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BACS', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFCS': ['Ofcs'], 'BACS': ['Bacs']},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'DDPS',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Forces aériennes'],
+        "fr_names": [
+            ['Forces aériennes', 'forces aériennes'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             ['Luftwaffe'],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'DDPS',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Forces terrestres'],
+        "fr_names": [
+            ['Forces terrestres', 'forces terrestres'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             # Heer.es
@@ -740,11 +897,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'DDPS',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Etat-major général'],
+        "fr_names": [
+            ['Etat-major général', 'etat-major général', 'État-major général', 'état-major général'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             # Generalstab.s.es
@@ -755,12 +915,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     # ──────────────── FDF ────────────────
     {
         "type": 'Federal Offices', "upper_level": 'FDF',
         "en_name": 'General Secretariat', "en_abbrev": 'GS-FDF',
-        "fr_names": ['Secrétariat général'],
+        "fr_names": [
+            ['Secrétariat général', 'secrétariat général'],
+        ],
         "fr_abbrev": 'SG-DFF', "fr_alt_abbrevs": [],
         "de_names": [
             # Generalsekretariat.s
@@ -770,11 +933,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'GS-EFD', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDF',
         "en_name": 'State Secretariat for International Finance', "en_abbrev": 'SIF',
-        "fr_names": ["Secrétariat d'état aux questions financières internationales"],
+        "fr_names": [
+            ["Secrétariat d'état aux questions financières internationales", "secrétariat d'état aux questions financières internationales", "Secrétariat d'État aux questions financières internationales", "secrétariat d'État aux questions financières internationales", "Secrétariat d'Etat aux questions financières internationales", "secrétariat d'Etat aux questions financières internationales"],
+        ],
         "fr_abbrev": 'SFI', "fr_alt_abbrevs": [],
         "de_names": [
             # Staatssekretariat.s für internationale Finanzfragen
@@ -784,11 +950,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'SIF', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDF',
         "en_name": 'Federal Finance Administration', "en_abbrev": 'FFA',
-        "fr_names": ['Administration fédérale des finances'],
+        "fr_names": [
+            ['Administration fédérale des finances', 'administration fédérale des finances'],
+        ],
         "fr_abbrev": 'AFF', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.n.r Finanzverwaltung
@@ -798,11 +967,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'EFV', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDF',
         "en_name": 'Federal Office of Personnel', "en_abbrev": 'FOPER',
-        "fr_names": ['Office fédéral du personnel'],
+        "fr_names": [
+            ['Office fédéral du personnel', 'office fédéral du personnel'],
+        ],
         "fr_abbrev": 'OFPER', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.s.n Personalamt.s.es
@@ -815,11 +987,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'EPA', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFPER': ['Ofper']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDF',
         "en_name": 'Federal Tax Administration', "en_abbrev": 'FTA',
-        "fr_names": ['Administration fédérale des contributions'],
+        "fr_names": [
+            ['Administration fédérale des contributions', 'administration fédérale des contributions'],
+        ],
         "fr_abbrev": 'AFC', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.n.r Steuerverwaltung
@@ -829,11 +1004,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'ESTV', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'ESTV': ['Estv']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDF',
         "en_name": 'Federal Office for Customs and Border Security', "en_abbrev": 'FOCBS',
-        "fr_names": ['Office fédéral de la douane et de la sécurité des frontières', 'Office fédéral des douanes'],
+        "fr_names": [
+            ['Office fédéral de la douane et de la sécurité des frontières', 'office fédéral de la douane et de la sécurité des frontières'],
+            ['Office fédéral des douanes', 'office fédéral des douanes'],
+        ],
         "fr_abbrev": 'OFDF', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Zoll und Grenzsicherheit
@@ -849,11 +1028,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BAZG', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFDF': ['Ofdf'], 'BAZG': ['Bazg']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDF',
         "en_name": 'Federal Office of Information Technology, Systems and Telecommunication', "en_abbrev": 'FOITT',
-        "fr_names": ['Office fédéral de l’informatique et de la télécommunication', 'Office fédéral de l’informatique'],
+        "fr_names": [
+            ['Office fédéral de l’informatique et de la télécommunication', 'office fédéral de l’informatique et de la télécommunication'],
+            ['Office fédéral de l’informatique', 'office fédéral de l’informatique'],
+        ],
         "fr_abbrev": 'OFIT', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Informatik und Telekommunikation
@@ -870,11 +1053,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BIT', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFIT': ['Ofit']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'FDF',
         "en_name": 'Federal Office for Buildings and Logistics', "en_abbrev": 'FOBL',
-        "fr_names": ['Office fédéral des constructions et de la logistique'],
+        "fr_names": [
+            ['Office fédéral des constructions et de la logistique', 'office fédéral des constructions et de la logistique'],
+        ],
         "fr_abbrev": 'OFCL', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Bauten und Logistik
@@ -885,11 +1071,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BBL', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFCL': ['Ofcl']},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'FDF',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Caisse fédérale d’assurance', 'Office fédéral des assurances privées'],
+        "fr_names": [
+            ['Caisse fédérale d’assurance', 'caisse fédérale d’assurance'],
+            ['Office fédéral des assurances privées', 'office fédéral des assurances privées'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             # Eidgenössische.n.r Versicherungskasse
@@ -905,11 +1095,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'FDF',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Unité de pilotage informatique de la Confédération'],
+        "fr_names": [
+            ['Unité de pilotage informatique de la Confédération', 'unité de pilotage informatique de la Confédération'],
+        ],
         "fr_abbrev": 'UPIC', "fr_alt_abbrevs": [],
         "de_names": [
             # Informatiksteuerungsorgan.s des Bundes
@@ -919,12 +1112,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'ISB', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'UPIC': ['Upic']},
     },
     # ──────────────── EAER ────────────────
     {
         "type": 'Federal Offices', "upper_level": 'EAER',
         "en_name": 'General Secretariat', "en_abbrev": 'GS-EAER',
-        "fr_names": ['Secrétariat général'],
+        "fr_names": [
+            ['Secrétariat général', 'secrétariat général'],
+        ],
         "fr_abbrev": 'SG-DEFR', "fr_alt_abbrevs": [],
         "de_names": [
             # Generalsekretariat.s
@@ -934,21 +1130,27 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'GS-WBF', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'EAER',
         "en_name": 'Office of the Price Supervisor', "en_abbrev": 'PRS',
-        "fr_names": ['Surveillance des prix'],
+        "fr_names": [
+            ['Surveillance des prix', 'surveillance des prix'],
+        ],
         "fr_abbrev": 'SPR', "fr_alt_abbrevs": [],
         "de_names": [
             ['Preisüberwachung'],
         ],
         "de_abbrev": 'PUE', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'EAER',
         "en_name": 'State Secretariat for Economic Affairs', "en_abbrev": 'SECO',
-        "fr_names": ['Secrétariat d’Etat à l’économie'],
+        "fr_names": [
+            ['Secrétariat d’Etat à l’économie', 'secrétariat d’Etat à l’économie', 'Secrétariat d’État à l’économie', 'secrétariat d’État à l’économie', 'Secrétariat d’état à l’économie', 'secrétariat d’état à l’économie'],
+        ],
         "fr_abbrev": 'SECO', "fr_alt_abbrevs": [],
         "de_names": [
             # Staatssekretariat.s für Wirtschaft
@@ -958,11 +1160,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'SECO', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'SECO': ['Seco']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'EAER',
         "en_name": 'State Secretariat for Education, Research and Innovation', "en_abbrev": 'SERI',
-        "fr_names": ["Secrétariat d'Etat à la formation, à la recherche et à l’innovation", 'Office fédéral de la formation professionnelle et de la technologie'],
+        "fr_names": [
+            ["Secrétariat d'Etat à la formation, à la recherche et à l’innovation", "secrétariat d'Etat à la formation, à la recherche et à l’innovation", "Secrétariat d'État à la formation, à la recherche et à l’innovation", "secrétariat d'État à la formation, à la recherche et à l’innovation", "Secrétariat d'état à la formation, à la recherche et à l’innovation", "secrétariat d'état à la formation, à la recherche et à l’innovation"],
+            ['Office fédéral de la formation professionnelle et de la technologie', 'office fédéral de la formation professionnelle et de la technologie'],
+        ],
         "fr_abbrev": 'SEFRI', "fr_alt_abbrevs": [],
         "de_names": [
             # Staatssekretariat.s für Bildung, Forschung und Innovation
@@ -978,11 +1184,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'SBFI', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'SEFRI': ['Sefri'], 'SBFI': ['Sbfi']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'EAER',
         "en_name": 'Federal Office for Agriculture', "en_abbrev": 'FOAG',
-        "fr_names": ['Office fédéral de l’agriculture'],
+        "fr_names": [
+            ['Office fédéral de l’agriculture', 'office fédéral de l’agriculture'],
+        ],
         "fr_abbrev": 'OFAG', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Landwirtschaft
@@ -993,11 +1202,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BLW', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFAG': ['Ofag']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'EAER',
         "en_name": 'Federal Office for National Economic Supply', "en_abbrev": 'FONES',
-        "fr_names": ['Office fédéral pour l’approvisionnement économique du pays'],
+        "fr_names": [
+            ['Office fédéral pour l’approvisionnement économique du pays', 'office fédéral pour l’approvisionnement économique du pays'],
+        ],
         "fr_abbrev": 'OFAE', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für wirtschaftliche Landesversorgung
@@ -1008,11 +1220,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BWL', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFAE': ['Ofae']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'EAER',
         "en_name": 'Federal Office for Housing', "en_abbrev": 'FOH',
-        "fr_names": ['Office fédéral du logement'],
+        "fr_names": [
+            ['Office fédéral du logement', 'office fédéral du logement'],
+        ],
         "fr_abbrev": 'OFL', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Wohnungswesen
@@ -1023,11 +1238,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BWO', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'EAER',
         "en_name": 'Federal Office for Civilian Service', "en_abbrev": 'CIVI',
-        "fr_names": ['Office fédéral du service civil'],
+        "fr_names": [
+            ['Office fédéral du service civil', 'office fédéral du service civil'],
+        ],
         "fr_abbrev": 'CIVI', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Zivildienst
@@ -1038,11 +1256,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'ZIVI', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'CIVI': ['Civi']},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'EAER',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Office vétérinaire fédéral'],
+        "fr_names": [
+            ['Office vétérinaire fédéral', 'office vétérinaire fédéral'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Veterinärwesen
@@ -1053,12 +1274,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     # ──────────────── DETEC ────────────────
     {
         "type": 'Federal Offices', "upper_level": 'DETEC',
         "en_name": 'General Secretariat', "en_abbrev": 'GS-DETEC',
-        "fr_names": ['Secrétariat général'],
+        "fr_names": [
+            ['Secrétariat général', 'secrétariat général'],
+        ],
         "fr_abbrev": 'SG-DETEC', "fr_alt_abbrevs": [],
         "de_names": [
             # Generalsekretariat.s
@@ -1068,11 +1292,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'GS-UVEK', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DETEC',
         "en_name": 'Federal Office of Transport', "en_abbrev": 'FOT',
-        "fr_names": ['Office fédéral des transports'],
+        "fr_names": [
+            ['Office fédéral des transports', 'office fédéral des transports'],
+        ],
         "fr_abbrev": 'OFT', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Verkehr
@@ -1083,11 +1310,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BAV', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DETEC',
         "en_name": 'Federal Office of Civil Aviation', "en_abbrev": 'FOCA',
-        "fr_names": ['Office fédéral de l’aviation civile'],
+        "fr_names": [
+            ['Office fédéral de l’aviation civile', 'office fédéral de l’aviation civile'],
+        ],
         "fr_abbrev": 'OFAC', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Zivilluftfahrt
@@ -1098,11 +1328,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BAZL', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFAC': ['Ofac'], 'BAZL': ['Bazl']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DETEC',
         "en_name": 'Swiss Federal Office of Energy', "en_abbrev": 'SFOE',
-        "fr_names": ['Office fédéral de l’énergie'],
+        "fr_names": [
+            ['Office fédéral de l’énergie', 'office fédéral de l’énergie'],
+        ],
         "fr_abbrev": 'OFEN', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Energie
@@ -1113,11 +1346,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BFE', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DETEC',
         "en_name": 'Federal Roads Office', "en_abbrev": 'FEDRO',
-        "fr_names": ['Office fédéral des routes'],
+        "fr_names": [
+            ['Office fédéral des routes', 'office fédéral des routes'],
+        ],
         "fr_abbrev": 'OFROU', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Strassen
@@ -1128,11 +1364,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'ASTRA', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFROU': ['Ofrou'], 'ASTRA': ['Astra']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DETEC',
         "en_name": 'Federal Office of Communications', "en_abbrev": 'OFCOM',
-        "fr_names": ['Office fédéral de la communication'],
+        "fr_names": [
+            ['Office fédéral de la communication', 'office fédéral de la communication'],
+        ],
         "fr_abbrev": 'OFCOM', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Kommunikation
@@ -1143,11 +1382,15 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BAKOM', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'BAKOM': ['Bakom']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DETEC',
         "en_name": 'Federal Office for the Environment', "en_abbrev": 'FOEN',
-        "fr_names": ['Office fédéral de l’environnement', 'Office fédéral de l’environnement, des forêts et du paysage'],
+        "fr_names": [
+            ['Office fédéral de l’environnement', 'office fédéral de l’environnement'],
+            ['Office fédéral de l’environnement, des forêts et du paysage', 'office fédéral de l’environnement, des forêts et du paysage'],
+        ],
         "fr_abbrev": 'OFEV', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Umwelt
@@ -1164,11 +1407,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'BAFU', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {'OFEV': ['Ofev'], 'BAFU': ['Bafu']},
     },
     {
         "type": 'Federal Offices', "upper_level": 'DETEC',
         "en_name": 'Federal Office for Spatial Development', "en_abbrev": 'ARE',
-        "fr_names": ['Office fédéral du développement territorial'],
+        "fr_names": [
+            ['Office fédéral du développement territorial', 'office fédéral du développement territorial'],
+        ],
         "fr_abbrev": 'ARE', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Raumentwicklung
@@ -1179,11 +1425,14 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": 'ARE', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
     {
         "type": 'OLD Federal Offices', "upper_level": 'DETEC',
         "en_name": '', "en_abbrev": '',
-        "fr_names": ['Office fédéral des eaux et de la géologie'],
+        "fr_names": [
+            ['Office fédéral des eaux et de la géologie', 'office fédéral des eaux et de la géologie'],
+        ],
         "fr_abbrev": '', "fr_alt_abbrevs": [],
         "de_names": [
             # Bundesamt.s.es für Wasser und Geologie
@@ -1194,5 +1443,6 @@ FEDERAL_UNITS = [
             ],
         ],
         "de_abbrev": '', "de_alt_abbrevs": [],
+        "abbrev_case_variants": {},
     },
 ]

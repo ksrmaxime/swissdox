@@ -119,13 +119,15 @@ def _build_federal_units():
             name_en=u["en_name"], abbrev_en=u["en_abbrev"],
             abbrev_fr=u["fr_abbrev"], abbrev_de=u["de_abbrev"],
         ))
-        for name in u["fr_names"]:
-            add([name], is_abbrev=False, lang="fr", uid=uid)
-        for declined in u["de_names"]:
+        for variants in u["fr_names"]:          # [forme de référence, variantes casse/accents...]
+            add(variants, is_abbrev=False, lang="fr", uid=uid)
+        for declined in u["de_names"]:          # [forme de référence, déclinaisons...]
             add(declined, is_abbrev=False, lang="de", uid=uid)
+        case_variants = u.get("abbrev_case_variants", {})
         for lang in ("fr", "de"):
             for ab in [u[f"{lang}_abbrev"]] + u[f"{lang}_alt_abbrevs"]:
-                add([ab], is_abbrev=True, lang=lang, uid=uid)
+                if ab:
+                    add([ab] + case_variants.get(ab, []), is_abbrev=True, lang=lang, uid=uid)
     return units, forms
 
 

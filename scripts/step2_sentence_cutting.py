@@ -42,10 +42,10 @@ from src.download_src import (
 #     (comportement historique, ex. "Bürokratieabbau" est capté)
 #   - noms d'unités fédérales (toutes déclinaisons) : insensibles à la casse,
 #     mot entier
-#   - abréviations en MAJUSCULES (EDA, SEM, DR, BAR, ...) : SENSIBLES à la casse,
-#     mot entier — sinon "DR" capterait "Dr.", "BAR" "bar", "BIT" "bit", ...
-#   - abréviations en casse mixte (Fedpol, swisstopo, armasuisse, ...) :
-#     insensibles à la casse, mot entier
+#   - abréviations : SENSIBLES à la casse, mot entier. Seules les graphies
+#     listées dans keywords_list.py sont acceptées (EDA ; SECO et Seco ;
+#     Fedpol, fedpol et FEDPOL ...) — sinon "DR" capterait "Dr.", "BAR" "bar", ...
+#   - abréviations ambiguës : règles de contexte (STEP2_ABBREV_RULES)
 #   - ' et ’ sont interchangeables partout.
 
 
@@ -68,7 +68,7 @@ def build_keyword_index():
         for surface in kf.surfaces:
             surface_to_canonical[norm_key(surface)] = kf.canonical
             core = rf"(?<!\w){_to_regex(surface)}(?!\w)"
-            case_sensitive = kf.is_abbrev and surface.upper() == surface
+            case_sensitive = kf.is_abbrev   # chaque graphie d'abréviation est listée explicitement
             entries.append((surface, core if case_sensitive else f"(?i:{core})"))
 
     # Plus long d'abord : "Administration fédérale des finances" doit l'emporter
@@ -85,6 +85,8 @@ def resolve_keywords(sent: str, kw_pattern, surface_to_canonical) -> list[str]:
         canonical = surface_to_canonical.get(norm_key(m.group(0)), m.group(0))
         if norm_key(canonical) in _IGNORED_KEYS:
             continue   # le terme est reconnu (il "consomme" le texte) mais ne crée pas de ligne
+        if not _passes_context(canonical, sent):
+            continue   # abréviation ambiguë hors contexte (STEP2_ABBREV_RULES)
         by_group.setdefault(keyword_group(canonical), set()).add(canonical)
 
     # Dans une même entité, on garde l'alias le plus long (le plus explicite).
@@ -113,6 +115,51 @@ _IGNORED_KEYS = {norm_key(k) for k in STEP2_IGNORED_KEYWORDS}
 _unknown_ignored = _IGNORED_KEYS - set(FEDERAL_KEYWORD_FORMS)
 if _unknown_ignored:
     raise AssertionError(f"STEP2_IGNORED_KEYWORDS absents de keywords_list.py : {_unknown_ignored}")
+
+
+# ── Règles de contexte pour les abréviations ambiguës ────────────────────────
+# Une abréviation listée ici n'est retenue que si la phrase remplit la règle.
+#   "require" : la phrase doit contenir un de ces mots (sinon : ignorée).
+#               Pour les abréviations presque jamais utilisées pour l'unité
+#               fédérale dans la presse (DC = Washington DC / DC Comics / DC-10,
+#               DR = crédit photo « droits réservés » / TV danoise, EPA = agence
+#               US / oméga-3, ...).
+#   "exclude" : la phrase ne doit contenir aucun de ces motifs.
+# Clé = abréviation de référence (les variantes « Seco », « Astra » ... suivent
+# la règle de leur abréviation). (?i:...) = insensible à la casse.
+STEP2_ABBREV_RULES = {
+    "DC":    {"require": r"(?i:consulaire|konsular|Auslandschweizer|Suisses? de l.étranger|\bEDA\b|\bDFAE\b)"},
+    "DR":    {"require": r"(?i:ressources|Ressourcen|Aussennetz|réseau extérieur|\bEDA\b|\bDFAE\b)"},
+    "DV":    {"require": r"(?i:Völkerrecht|droit international|\bEDA\b|\bDFAE\b)"},
+    "KD":    {"require": r"(?i:konsular|consulaire|Auslandschweizer|\bEDA\b)"},
+    "OA":    {"require": r"(?i:Oberauditor|auditeur en chef|Militärjustiz|justice militaire)"},
+    "AFS":   {"require": r"(?i:Archiv|archives)"},
+    "EPA":   {"require": r"(?i:Personalamt|Bundespersonal|personnel de la Confédération|Bundesangestellt|Lohn|Löhne|salaire|\bEFD\b|\bDFF\b)"},
+    "AFC":   {"exclude": r"AFC\s+[A-Z][a-z]|(?i:Sunderland|Bournemouth|Ajax|Wimbledon|Fussball|football|Fifa|Uefa|asiati|Asien|Champions League|Asian Cup)"},
+    "BIT":   {"exclude": r"(?i:travail|chômage|Arbeitsorganisation|\bILO\b|\bOIT\b|Bureau international)"},
+    "BWL":   {"exclude": r"BWL-|(?i:studi|Betriebswirtschaft|Universität|Hochschule|Bachelor|Master)"},
+    "BBL":   {"exclude": r"(?i:Béjart|Ballet|Butt|Brazilian)"},
+    "ARE":   {"exclude": r"(?i:kantonal|\bKanton|cantonal|\bcanton)"},
+    "ASTRA": {"exclude": r"(?i:Opel|Vauxhall|Satellit|satellite|\bSES\b)"},
+}
+_ABBREV_RULES = {
+    norm_key(k): {kind: re.compile(rx) for kind, rx in rule.items()}
+    for k, rule in STEP2_ABBREV_RULES.items()
+}
+_unknown_rules = set(_ABBREV_RULES) - set(FEDERAL_KEYWORD_FORMS)
+if _unknown_rules:
+    raise AssertionError(f"STEP2_ABBREV_RULES absents de keywords_list.py : {_unknown_rules}")
+
+
+def _passes_context(canonical: str, sent: str) -> bool:
+    rule = _ABBREV_RULES.get(norm_key(canonical))
+    if rule is None:
+        return True
+    if "require" in rule and not rule["require"].search(sent):
+        return False
+    if "exclude" in rule and rule["exclude"].search(sent):
+        return False
+    return True
 
 
 # ── Légendes et crédits photo ────────────────────────────────────────────────
