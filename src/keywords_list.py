@@ -795,7 +795,6 @@ FEDERAL_UNITS = [
             [
                 'Eidgenössische Finanzverwaltung',
                 'Eidgenössischen Finanzverwaltung',
-                'Eidgenössischer Finanzverwaltung',
             ],
         ],
         "de_abbrev": 'EFV', "de_alt_abbrevs": [],
@@ -827,7 +826,6 @@ FEDERAL_UNITS = [
             [
                 'Eidgenössische Steuerverwaltung',
                 'Eidgenössischen Steuerverwaltung',
-                'Eidgenössischer Steuerverwaltung',
             ],
         ],
         "de_abbrev": 'ESTV', "de_alt_abbrevs": [],
@@ -848,7 +846,6 @@ FEDERAL_UNITS = [
             [
                 'Eidgenössische Zollverwaltung',
                 'Eidgenössischen Zollverwaltung',
-                'Eidgenössischer Zollverwaltung',
             ],
         ],
         "de_abbrev": 'BAZG', "de_alt_abbrevs": [],
@@ -899,7 +896,6 @@ FEDERAL_UNITS = [
             [
                 'Eidgenössische Versicherungskasse',
                 'Eidgenössischen Versicherungskasse',
-                'Eidgenössischer Versicherungskasse',
             ],
             # Bundesamt.s.es für Privatversicherungen
             [
