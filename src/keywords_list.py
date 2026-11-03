@@ -605,9 +605,7 @@ FEDERAL_UNITS = [
             ],
             # Direktion für strategische.n.r Nachrichtendienst
             [
-                'Direktion für strategische Nachrichtendienst',
                 'Direktion für strategischen Nachrichtendienst',
-                'Direktion für strategischer Nachrichtendienst',
             ],
         ],
         "de_abbrev": 'NDB', "de_alt_abbrevs": [],
