@@ -78,14 +78,14 @@ def build_keyword_index():
     return pattern, surface_to_canonical
 
 
-def resolve_keywords(sent: str, kw_pattern, surface_to_canonical) -> list[str]:
+def resolve_keywords(sent: str, kw_pattern, surface_to_canonical, lang=None) -> list[str]:
     """Mot(s)-clé(s) canonique(s) trouvés dans `sent`, un par entité distincte."""
     by_group: dict[tuple, set[str]] = {}
     for m in kw_pattern.finditer(sent):
         canonical = surface_to_canonical.get(norm_key(m.group(0)), m.group(0))
         if norm_key(canonical) in _IGNORED_KEYS:
             continue   # le terme est reconnu (il "consomme" le texte) mais ne crée pas de ligne
-        if not _passes_context(canonical, sent):
+        if not _passes_context(canonical, sent, lang):
             continue   # abréviation ambiguë hors contexte (STEP2_ABBREV_RULES)
         by_group.setdefault(keyword_group(canonical), set()).add(canonical)
 
@@ -125,6 +125,9 @@ if _unknown_ignored:
 #               DR = crédit photo « droits réservés » / TV danoise, EPA = agence
 #               US / oméga-3, ...).
 #   "exclude" : la phrase ne doit contenir aucun de ces motifs.
+#   "lang"    : l'abréviation n'est retenue que dans les articles de cette
+#               langue (ex. BBL = abréviation allemande ; en français, « BBL »
+#               désigne presque toujours le Béjart Ballet Lausanne).
 # Clé = abréviation de référence (les variantes « Seco », « Astra » ... suivent
 # la règle de leur abréviation). (?i:...) = insensible à la casse.
 STEP2_ABBREV_RULES = {
@@ -135,15 +138,17 @@ STEP2_ABBREV_RULES = {
     "OA":    {"require": r"(?i:Oberauditor|auditeur en chef|Militärjustiz|justice militaire)"},
     "AFS":   {"require": r"(?i:Archiv|archives)"},
     "EPA":   {"require": r"(?i:Personalamt|Bundespersonal|personnel de la Confédération|Bundesangestellt|Lohn|Löhne|salaire|\bEFD\b|\bDFF\b)"},
-    "AFC":   {"exclude": r"AFC\s+[A-Z][a-z]|(?i:Sunderland|Bournemouth|Ajax|Wimbledon|Fussball|football|Fifa|Uefa|asiati|Asien|Champions League|Asian Cup)"},
-    "BIT":   {"exclude": r"(?i:travail|chômage|Arbeitsorganisation|\bILO\b|\bOIT\b|Bureau international)"},
-    "BWL":   {"exclude": r"BWL-|(?i:studi|Betriebswirtschaft|Universität|Hochschule|Bachelor|Master)"},
-    "BBL":   {"exclude": r"(?i:Béjart|Ballet|Butt|Brazilian)"},
+    "AFC":   {"lang": "fr",
+              "exclude": r"AFC\s+[A-Z][a-z]|(?i:Sunderland|Bournemouth|Ajax|Wimbledon|Fussball|football|Fifa|Uefa|asiati|Asien|Champions League|Ligue des champions|Asian Cup|M23|Congo|Kongo|America First|cantonal)"},
+    "BIT":   {"lang": "de", "exclude": r"(?i:travail|chômage|Arbeitsorganisation|\bILO\b|\bOIT\b|Bureau international)"},
+    "BWL":   {"lang": "de", "exclude": r"BWL-|VWL|(?i:studi|Betriebswirtschaft|Universität|Hochschule|Bachelor|Master)"},
+    "BBL":   {"lang": "de", "exclude": r"(?i:Béjart|Ballet|Butt|Brazilian)"},
     "ARE":   {"exclude": r"(?i:kantonal|\bKanton|cantonal|\bcanton)"},
     "ASTRA": {"exclude": r"(?i:Opel|Vauxhall|Satellit|satellite|\bSES\b)"},
+    "METAS": {"exclude": r"Metas\s+[A-ZÄÖÜ]|(?i:Zuckerberg|Facebook|Instagram|WhatsApp)"},   # « Metas Llama » = génitif de Meta
 }
 _ABBREV_RULES = {
-    norm_key(k): {kind: re.compile(rx) for kind, rx in rule.items()}
+    norm_key(k): {kind: (rx if kind == "lang" else re.compile(rx)) for kind, rx in rule.items()}
     for k, rule in STEP2_ABBREV_RULES.items()
 }
 _unknown_rules = set(_ABBREV_RULES) - set(FEDERAL_KEYWORD_FORMS)
@@ -151,10 +156,12 @@ if _unknown_rules:
     raise AssertionError(f"STEP2_ABBREV_RULES absents de keywords_list.py : {_unknown_rules}")
 
 
-def _passes_context(canonical: str, sent: str) -> bool:
+def _passes_context(canonical: str, sent: str, lang=None) -> bool:
     rule = _ABBREV_RULES.get(norm_key(canonical))
     if rule is None:
         return True
+    if "lang" in rule and str(lang).strip().lower() != rule["lang"]:
+        return False
     if "require" in rule and not rule["require"].search(sent):
         return False
     if "exclude" in rule and rule["exclude"].search(sent):
@@ -281,7 +288,8 @@ def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_can
             if is_caption(sent):
                 stats["captions"] += 1
                 continue
-            keywords = resolve_keywords(sent, kw_pattern, surface_to_canonical)
+            lang = article["language"] if "language" in article.index else None
+            keywords = resolve_keywords(sent, kw_pattern, surface_to_canonical, lang)
             journal = article[journal_col] if journal_col else None
             for keyword in keywords:
                 key = (sent, journal, keyword)
