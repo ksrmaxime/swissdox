@@ -16,6 +16,8 @@ def main() -> None:
     ap.add_argument("--outdir", default="data/processed/swissdox")
     ap.add_argument("--test", action="store_true", help="Swissdox test mode (if supported)")
     ap.add_argument("--max-wait-hours", type=float, default=12.0, help="Max time to wait for Swissdox downloadUrl")
+    ap.add_argument("--query-id", default=None,
+                    help="Reprendre une requête Swissdox déjà soumise (queryId affiché dans le .out d'un job précédent) au lieu d'en soumettre une nouvelle")
     args = ap.parse_args()
 
     languages = ["de", "fr"]
@@ -37,6 +39,7 @@ def main() -> None:
         out_dir=Path(args.outdir),
         test=args.test,
         max_wait_s=int(args.max_wait_hours * 3600),
+        query_id=args.query_id,
     )
 
     print("[DONE] Outputs:")

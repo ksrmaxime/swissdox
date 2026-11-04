@@ -288,6 +288,27 @@ class SwissdoxClient:
             raise RuntimeError(f"Swissdox missing queryId: {resp}")
         return str(qid)
 
+    # Erreurs serveur passagères (500, 502, 503, 504, coupure réseau) : on
+    # réessaie au lieu de faire échouer un job de plusieurs heures. Une erreur
+    # 4xx (clé API refusée, requête invalide) reste immédiatement fatale.
+    _RETRY_STATUS = {429, 500, 502, 503, 504}
+
+    def _get_with_retry(self, url: str, *, what: str, max_tries: int = 10, base_sleep_s: int = 30):
+        for attempt in range(1, max_tries + 1):
+            try:
+                r = self.session.get(url, headers=self.headers, timeout=self.timeout)
+                if r.status_code not in self._RETRY_STATUS:
+                    r.raise_for_status()
+                    return r
+                err = f"HTTP {r.status_code}"
+            except (requests.ConnectionError, requests.Timeout) as e:
+                err = type(e).__name__
+            if attempt == max_tries:
+                raise RuntimeError(f"Swissdox {what}: échec après {max_tries} essais ({err})")
+            wait = min(base_sleep_s * 2 ** (attempt - 1), 30 * 60)   # 30 s, 1 min, 2 min, ... max 30 min
+            print(f"[Swissdox] {what}: {err}, nouvel essai {attempt + 1}/{max_tries} dans {wait}s", flush=True)
+            time.sleep(wait)
+
     def wait_for_download_url(
         self,
         query_id: str,
@@ -297,8 +318,7 @@ class SwissdoxClient:
     ) -> str:
         deadline = time.time() + max_wait_s
         while time.time() < deadline:
-            rs = self.session.get(self.status_url, headers=self.headers, timeout=self.timeout)
-            rs.raise_for_status()
+            rs = self._get_with_retry(self.status_url, what="/status")
             status_list = rs.json()
 
             job = next((j for j in status_list if str(j.get("id")) == str(query_id)), None)
@@ -318,8 +338,7 @@ class SwissdoxClient:
         raise TimeoutError(f"Swissdox: no downloadUrl after {max_wait_s}s (query_id={query_id})")
 
     def download_tsv_xz(self, download_url: str) -> pd.DataFrame:
-        r = self.session.get(download_url, headers=self.headers, timeout=self.timeout)
-        r.raise_for_status()
+        r = self._get_with_retry(download_url, what="téléchargement", max_tries=6)
         return pd.read_csv(BytesIO(r.content), sep="\t", compression="xz")
 
     def _normalize_download_url(self, download_url: str) -> str:
@@ -466,6 +485,7 @@ def run_pipeline(
     out_dir: Path,
     test: bool = False,
     max_wait_s: int = 12 * 60 * 60,
+    query_id: str | None = None,
 ) -> Dict[str, Path]:
     load_dotenv()
     api_key = os.getenv("SWISSDOX_API_KEY")
@@ -486,13 +506,19 @@ def run_pipeline(
     )
 
     client = SwissdoxClient(api_key=api_key, api_secret=api_secret)
-    qid = client.submit_query(
-        payload["yaml_payload"],
-        name=payload["meta"]["name"],
-        comment=payload["meta"]["comment"],
-        expiration_date=payload["meta"]["expirationDate"],
-        test=test,
-    )
+    if query_id:
+        # Reprise : la requête a déjà été soumise (ex. job précédent interrompu),
+        # on ne la renvoie pas, on attend / télécharge son résultat.
+        qid = str(query_id)
+        print(f"[Swissdox] reprise de la requête existante (pas de nouvelle soumission)")
+    else:
+        qid = client.submit_query(
+            payload["yaml_payload"],
+            name=payload["meta"]["name"],
+            comment=payload["meta"]["comment"],
+            expiration_date=payload["meta"]["expirationDate"],
+            test=test,
+        )
     print(f"[Swissdox] queryId={qid}")
 
     url = client.wait_for_download_url(qid, max_wait_s=max_wait_s)

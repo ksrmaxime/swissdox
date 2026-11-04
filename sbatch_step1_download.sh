@@ -38,11 +38,22 @@ which python
 export TMPDIR="/scratch/mkaiser3/tmp_${SLURM_JOB_ID}"
 mkdir -p "${TMPDIR}"
 
+# ── Reprise optionnelle : sbatch sbatch_step1_download.sh <QUERY_ID> ─────
+# Si un job précédent a échoué APRÈS avoir soumis la requête, son .out contient
+# "[Swissdox] queryId=XXXX". Passer cet ID reprend la même requête sans la renvoyer.
+QUERY_ID="${1:-}"
+QUERY_ID_ARGS=()
+if [ -n "$QUERY_ID" ]; then
+    echo "[INFO] Reprise de la requête Swissdox existante: $QUERY_ID"
+    QUERY_ID_ARGS=(--query-id "$QUERY_ID")
+fi
+
 python scripts/step1_download.py \
   --start 2000-01-01 \
   --end 2015-12-31 \
   --max-results 1000000 \
   --max-wait-hours 22 \
-  --outdir "${OUTDIR}"
+  --outdir "${OUTDIR}" \
+  ${QUERY_ID_ARGS[@]+"${QUERY_ID_ARGS[@]}"}
 
 echo "Job finished. Output: ${OUTDIR}"
