@@ -15,6 +15,9 @@
 
 set -eo pipefail
 
+# Logs écrits immédiatement dans le .out (sinon Python les garde en mémoire)
+export PYTHONUNBUFFERED=1
+
 module purge
 dcsrsoft use 20241118
 module load python/3.12.1

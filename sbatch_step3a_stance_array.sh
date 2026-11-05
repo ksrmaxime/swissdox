@@ -21,6 +21,9 @@
 
 set -eo pipefail
 
+# Logs écrits immédiatement dans le .out (sinon Python les garde en mémoire)
+export PYTHONUNBUFFERED=1
+
 export PYTORCH_ALLOC_CONF=expandable_segments:True
 
 module purge

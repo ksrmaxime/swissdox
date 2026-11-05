@@ -23,6 +23,8 @@ Keywords are exactly the ones used to build the Swissdox query
 from __future__ import annotations
 
 import argparse
+import multiprocessing as mp
+import os
 import re
 import sys
 from pathlib import Path
@@ -263,40 +265,30 @@ def split_sentences(text: str) -> list[str]:
     return sentences
 
 
-def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_canonical,
-                  journal_col, seen: set, stats: dict) -> list[dict]:
-    """Process one chunk of articles, return list of sentence dicts. Never holds exploded df in memory.
+def extract_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_canonical) -> tuple[list[dict], int]:
+    """Découpe un paquet d'articles et retourne (lignes, nb de légendes supprimées).
 
     One row per (sentence, canonical keyword) pair: a sentence matching
     several distinct entities is duplicated once per entity; a sentence
     matching several aliases of the same entity produces a single row.
-
-    - crédits photo retirés de la phrase, légendes supprimées (strip_credits / is_caption)
-    - doublons : une phrase exactement identique, dans le même journal
-      (même medium_code : NZZ et NZZO sont deux journaux distincts) et pour le
-      même mot-clé n'est gardée qu'une fois (la 1re rencontrée). `seen` est
-      partagé entre les chunks.
+    Crédits photo retirés de la phrase, légendes supprimées (strip_credits / is_caption).
+    Les doublons ne sont PAS filtrés ici (voir drop_duplicates_in_order) : cette
+    fonction peut donc tourner en parallèle sur plusieurs CPU.
     """
     meta_cols = [c for c in chunk.columns if c != text_col]
     rows = []
+    n_captions = 0
     for _, article in chunk.iterrows():
         sentences = split_sentences(article[text_col])
+        lang = article["language"] if "language" in article.index else None
         for sent in sentences:
             sent = strip_credits(sent)
             if not sent or sent == "nan":
                 continue
             if is_caption(sent):
-                stats["captions"] += 1
+                n_captions += 1
                 continue
-            lang = article["language"] if "language" in article.index else None
-            keywords = resolve_keywords(sent, kw_pattern, surface_to_canonical, lang)
-            journal = article[journal_col] if journal_col else None
-            for keyword in keywords:
-                key = (sent, journal, keyword)
-                if key in seen:
-                    stats["duplicates"] += 1
-                    continue
-                seen.add(key)
+            for keyword in resolve_keywords(sent, kw_pattern, surface_to_canonical, lang):
                 kw_type, kw_sub_type, kw_abbrev = classify_keyword(keyword)
                 row = {c: article[c] for c in meta_cols}
                 row["sentence"] = sent
@@ -306,7 +298,48 @@ def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_can
                 row["keyword_abbrev"] = kw_abbrev
                 row.update(keyword_unit_metadata(keyword))
                 rows.append(row)
+    return rows, n_captions
+
+
+def drop_duplicates_in_order(rows: list[dict], journal_col, seen: set) -> tuple[list[dict], int]:
+    """Doublons : une phrase exactement identique, dans le même journal (même
+    medium_code : NZZ et NZZO sont deux journaux distincts) et pour le même
+    mot-clé n'est gardée qu'une fois (la 1re rencontrée, les articles étant
+    traités par date). `seen` est partagé entre tous les paquets."""
+    kept, n_dup = [], 0
+    for row in rows:
+        key = (row["sentence"], row.get(journal_col) if journal_col else None, row["matched_keywords"])
+        if key in seen:
+            n_dup += 1
+            continue
+        seen.add(key)
+        kept.append(row)
+    return kept, n_dup
+
+
+def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_canonical,
+                  journal_col, seen: set, stats: dict) -> list[dict]:
+    """Version en un seul appel (extraction + doublons), conservée pour les tests."""
+    rows, n_cap = extract_chunk(chunk, text_col, kw_pattern, surface_to_canonical)
+    rows, n_dup = drop_duplicates_in_order(rows, journal_col, seen)
+    stats["captions"] += n_cap
+    stats["duplicates"] += n_dup
     return rows
+
+
+# ── Parallélisation : chaque processus construit son propre index de mots-clés ─
+_WORKER_INDEX = None
+
+
+def _init_worker():
+    global _WORKER_INDEX
+    _WORKER_INDEX = build_keyword_index()
+
+
+def _extract_in_worker(job):
+    chunk, text_col = job
+    pattern, mapping = _WORKER_INDEX
+    return extract_chunk(chunk, text_col, pattern, mapping)
 
 
 def main() -> int:
@@ -321,6 +354,9 @@ def main() -> int:
                     help="Column to split into sentences. Auto-detected if omitted (prefers 'text', falls back to 'lead').")
     ap.add_argument("--chunk_size", type=int, default=2000,
                     help="Nombre d'articles traités par chunk (default: 2000)")
+    ap.add_argument("--workers", type=int,
+                    default=int(os.environ.get("SLURM_CPUS_PER_TASK", "1")),
+                    help="Nombre de processus en parallèle (défaut : SLURM_CPUS_PER_TASK, sinon 1)")
     args = ap.parse_args()
 
     input_path = Path(args.input)
@@ -371,9 +407,24 @@ def main() -> int:
     total_sentences = 0
     first_chunk = True
 
-    for chunk_start in range(0, n_total, args.chunk_size):
-        chunk = df_full.iloc[chunk_start:chunk_start + args.chunk_size]
-        rows = process_chunk(chunk, text_col, kw_pattern, surface_to_canonical, journal_col, seen, stats)
+    # Les paquets sont découpés en parallèle, mais leurs résultats arrivent DANS
+    # L'ORDRE (imap) : doublons et sentence_id sont gérés ici, séquentiellement,
+    # exactement comme en version mono-processus.
+    starts = list(range(0, n_total, args.chunk_size))
+    jobs = ((df_full.iloc[st:st + args.chunk_size], text_col) for st in starts)
+    workers = max(1, args.workers)
+    print(f"[sentence_cutting] {len(starts)} paquets de {args.chunk_size} articles, {workers} processus", flush=True)
+    if workers > 1:
+        pool = mp.Pool(workers, initializer=_init_worker)
+        results = pool.imap(_extract_in_worker, jobs)
+    else:
+        pool = None
+        results = (extract_chunk(c, t, kw_pattern, surface_to_canonical) for c, t in jobs)
+
+    for chunk_start, (rows, n_cap) in zip(starts, results):
+        stats["captions"] += n_cap
+        rows, n_dup = drop_duplicates_in_order(rows, journal_col, seen)
+        stats["duplicates"] += n_dup
 
         if not rows:
             print(f"[sentence_cutting] Chunk {chunk_start//args.chunk_size + 1}: 0 phrases", flush=True)
@@ -397,6 +448,9 @@ def main() -> int:
               f"({chunk_start+1}-{min(chunk_start+args.chunk_size, n_total)}/{n_total}) "
               f"→ {len(rows)} phrases | total: {total_sentences:,}", flush=True)
 
+    if pool is not None:
+        pool.close()
+        pool.join()
     print(f"[sentence_cutting] Saved {total_sentences:,} sentences → {output_path}")
     print(f"[sentence_cutting] Légendes supprimées : {stats['captions']:,} | "
           f"doublons supprimés (même phrase, même journal) : {stats['duplicates']:,}")

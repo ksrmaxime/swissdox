@@ -316,22 +316,42 @@ class SwissdoxClient:
         max_wait_s: int = 12 * 60 * 60,
         poll_every_s: int = 30,
     ) -> str:
-        deadline = time.time() + max_wait_s
+        start = time.time()
+        deadline = start + max_wait_s
+        last_log = float("-inf")   # 1re ligne de suivi tout de suite
+        missing_since = None
         while time.time() < deadline:
             rs = self._get_with_retry(self.status_url, what="/status")
             status_list = rs.json()
+            now = time.time()
 
             job = next((j for j in status_list if str(j.get("id")) == str(query_id)), None)
             if not job:
-                time.sleep(poll_every_s)
-                continue
+                # La requête n'apparaît pas (encore / plus) dans /status. Juste après
+                # une soumission c'est normal quelques minutes ; au-delà de 30 min,
+                # elle a disparu (expirée, supprimée ou échouée côté Swissdox) :
+                # on arrête au lieu d'attendre en silence jusqu'à max_wait_s.
+                missing_since = missing_since or now
+                if now - missing_since > 30 * 60:
+                    ids = [str(j.get("id")) for j in status_list][-10:]
+                    raise RuntimeError(
+                        f"Swissdox: queryId {query_id} absent de /status depuis 30 min "
+                        f"(10 derniers ids listés: {ids}). Relancer sans --query-id pour soumettre à nouveau."
+                    )
+            else:
+                missing_since = None
+                if job.get("error"):
+                    raise RuntimeError(f"Swissdox job error: {job['error']}")
+                url = job.get("downloadUrl")
+                if url:
+                    print(f"[Swissdox] résultat prêt après {(now - start) / 3600:.1f} h d'attente", flush=True)
+                    return self._normalize_download_url(url)
 
-            if job.get("error"):
-                raise RuntimeError(f"Swissdox job error: {job['error']}")
-
-            url = job.get("downloadUrl")
-            if url:
-                return self._normalize_download_url(url)
+            if now - last_log >= 10 * 60:   # une ligne de suivi toutes les 10 min
+                state = ({k: v for k, v in job.items() if k not in ("query", "downloadUrl")}
+                         if job else "requête absente de /status")
+                print(f"[Swissdox] attente {(now - start) / 3600:.1f} h — état: {state}", flush=True)
+                last_log = now
 
             time.sleep(poll_every_s)
 

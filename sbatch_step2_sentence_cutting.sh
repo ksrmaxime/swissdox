@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #SBATCH --job-name=step2_sentence_cutting
 #SBATCH --partition=cpu
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=24G
-#SBATCH --time=01:00:00
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=128G
+#SBATCH --time=12:00:00
 #SBATCH --output=logs/step2_sentence_cutting_%j.out
 #SBATCH --error=logs/step2_sentence_cutting_%j.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
@@ -12,8 +12,13 @@
 # Usage: sbatch sbatch_step2_sentence_cutting.sh <PREV_JOB_ID>
 # Exemple: sbatch sbatch_step2_sentence_cutting.sh 60015520
 # Le PREV_JOB_ID est l'ID du job de sbatch_step1_download.sh
+# (ou de sbatch_step1b_merge_years.sh pour un téléchargement année par année)
+# Le découpage tourne en parallèle sur les CPU demandés (--cpus-per-task).
 
 set -eo pipefail
+
+# Logs écrits immédiatement dans le .out (sinon Python les garde en mémoire)
+export PYTHONUNBUFFERED=1
 
 module purge
 dcsrsoft use 20241118
@@ -46,7 +51,8 @@ echo "OUTPUT_BASE = $OUTPUT_BASE"
 
 python scripts/step2_sentence_cutting.py \
     --input  "$INPUT" \
-    --output_base "$OUTPUT_BASE"
+    --output_base "$OUTPUT_BASE" \
+    --workers "${SLURM_CPUS_PER_TASK:-1}"
 
 OUTPUT="${OUTPUT_BASE}.csv"
 echo "Done. criticism_base ready at: $OUTPUT"

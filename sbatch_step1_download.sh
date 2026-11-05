@@ -16,6 +16,9 @@ export NUMEXPR_NUM_THREADS=1
 
 set -eo pipefail
 
+# Logs écrits immédiatement dans le .out (sinon Python les garde en mémoire)
+export PYTHONUNBUFFERED=1
+
 REPO_DIR="/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO"
 cd "${REPO_DIR}"
 

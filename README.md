@@ -15,6 +15,25 @@ avec le LLM Apertus-8B-Instruct.
 
 Chaque étape reçoit en argument le job ID de l'étape précédente.
 
+### Grande période : téléchargement année par année (recommandé)
+
+Une requête Swissdox sur plusieurs années peut rester bloquée côté serveur.
+Pour une longue période, utiliser l'enchaînement annuel :
+
+```bash
+sbatch sbatch_step1_download_yearly.sh 2000 2025
+```
+
+- un job par année, chacun soumet automatiquement l'année suivante : les
+  requêtes Swissdox sont strictement consécutives (jamais en parallèle) ;
+- résultats par année dans `data/output/step1_download_years_chain<ID>/year_YYYY/` ;
+- après la dernière année, `sbatch_step1b_merge_years.sh` est soumis
+  automatiquement et produit `data/output/step1_download_job<ID merge>/swissdox_articles_lead.parquet`
+  (+ `articles_per_year.csv`) ;
+- puis : `sbatch sbatch_step2_sentence_cutting.sh <ID merge>` (16 CPU en parallèle) ;
+- reprise après échec d'une année : `sbatch sbatch_step1_download_yearly.sh <année> 2025 <dossier de la chaîne>`
+  (les années déjà téléchargées sont sautées).
+
 Labels de stance : `CRITICISM`, `PRAISE`, `NEUTRAL_STATEMENT` — évalués par rapport à
 l'entité ciblée (`matched_keywords`) uniquement. Une phrase citant plusieurs entités
 distinctes apparaît une fois par entité.
