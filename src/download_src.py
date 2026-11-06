@@ -180,7 +180,7 @@ def classify_keyword(keyword: str) -> tuple[str, str, str]:
     return "unknown", "unknown", keyword
 
 
-def keyword_unit_metadata(keyword: str) -> Dict[str, Any]:
+def keyword_unit_metadata(keyword: str, department: str | None = None) -> Dict[str, Any]:
     """Métadonnées d'analyse (dont colonnes EN) de l'unité désignée par le mot-clé.
 
     Si le terme désigne plusieurs unités, les valeurs sont jointes par " | ".
@@ -191,6 +191,8 @@ def keyword_unit_metadata(keyword: str) -> Dict[str, Any]:
     if kf is None:
         return {k: pd.NA for k in keys}
     units = [_UNIT_BY_ID[i] for i in sorted(kf.unit_ids)]
+    if department is not None:   # terme partagé, département déjà tranché (ex. règle de date)
+        units = [u for u in units if u.department == department] or units
 
     def join(vals):
         vals = list(dict.fromkeys(v for v in vals if v))

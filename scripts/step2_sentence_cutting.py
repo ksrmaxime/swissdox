@@ -61,10 +61,14 @@ def build_keyword_index():
     entries = []            # (surface, regex)
     surface_to_canonical = {}
 
+    whole_word = {norm_key(t) for t in STEP2_GENERIC_WHOLE_WORD}
     for canonical, surfaces in GENERIC_TERM_FORMS.items():
         for surface in surfaces:
             surface_to_canonical[norm_key(surface)] = canonical
-            entries.append((surface, f"(?i:{_to_regex(surface)})"))
+            core = _to_regex(surface)
+            if norm_key(canonical) in whole_word:
+                core = rf"(?<!\w){core}(?!\w)"
+            entries.append((surface, f"(?i:{core})"))
 
     for kf in FEDERAL_KEYWORD_FORMS.values():
         for surface in kf.surfaces:
@@ -146,7 +150,12 @@ STEP2_ABBREV_RULES = {
     "BWL":   {"lang": "de", "exclude": r"BWL-|VWL|(?i:studi|Betriebswirtschaft|Universität|Hochschule|Bachelor|Master)"},
     "BBL":   {"lang": "de", "exclude": r"(?i:Béjart|Ballet|Butt|Brazilian)"},
     "ARE":   {"exclude": r"(?i:kantonal|\bKanton|cantonal|\bcanton)"},
-    "ASTRA": {"exclude": r"(?i:Opel|Vauxhall|Satellit|satellite|\bSES\b)"},
+    "ASTRA": {"exclude": r"(?i:Opel|Vauxhall|Satellit|satellite|\bSES\b|Zeneca)"},
+    # Ajouts après le run complet 2000-2025 :
+    "BAR":   {"require": r"(?i:archiv|Akten|Dossier|Dokument|document|Bundesarchiv)"},   # sinon : écurie de F1 BAR Honda, Barbade (BAR), bars
+    "BFM":   {"exclude": r"BFM\s*TV|BFMTV|BFM\s+(?:Business|Paris|Lyon)|«BFM|(?i:chaîne|télévision)"},   # chaîne française BFM TV
+    "BAK":   {"exclude": r"\b(?:[Dd]ie|der)\s+BAK\b(?!-)|BAK\s*(?:Basel|Economics)|BAKBASEL|BAK-Konjunktur|(?i:Konjunktur|Ecoplan|Forschungsinstitut|Wirtschaftsforsch|institut de recherche|recherches économiques|bâlois|BAK-Experten|BAK-Ökonom|Prognose|prévision|prophezei|Ökonom|économiste|Wachstum|croissance|\bBIP\b|\bPIB\b)"},   # institut BAK Economics (« die BAK » ; l'office est « das BAK »)
+    "BSV":   {"exclude": r"BSV\s+(?:Bern|Muri|Stans|Wacker|Kriens|Borba)|(?i:Handball)|\b\d{1,2}:\d{1,2}\b"},   # club de handball BSV Bern
     "METAS": {"exclude": r"Metas\s+[A-ZÄÖÜ]|(?i:Zuckerberg|Facebook|Instagram|WhatsApp)"},   # « Metas Llama » = génitif de Meta
 }
 _ABBREV_RULES = {
@@ -169,6 +178,41 @@ def _passes_context(canonical: str, sent: str, lang=None) -> bool:
     if "exclude" in rule and rule["exclude"].search(sent):
         return False
     return True
+
+
+# ── Termes génériques exigeant un mot entier ──────────────────────────────────
+# Par défaut, un terme générique est aussi trouvé à l'intérieur d'un mot composé
+# (« Bürokratieabbau »). Pour ceux-ci, seul le mot seul compte : « Beamte » et
+# « Beamten » oui, « Polizeibeamte », « Chefbeamten » … non.
+STEP2_GENERIC_WHOLE_WORD = ["Beamte"]
+
+# ── Phrases supprimées ────────────────────────────────────────────────────────
+STEP2_MAX_SENTENCE_CHARS = 1000      # au-delà : tableaux de chiffres, code de graphiques
+_HTML_ENTITY = re.compile(r"&(?:[A-Za-z]{2,8}|#[xX]?[0-9A-Fa-f]{1,6});")   # « &gt; », « &#x00A0; » … restés dans le texte
+
+# ── Termes partagés entre deux départements : attribution selon la date ───────
+# L'Office fédéral des assurances privées dépendait du DFJP jusqu'au 30 juin
+# 2003, puis du DFF à partir du 1er juillet 2003. Format : liste de
+# (date limite incluse "AAAA-MM-JJ", département), la 1re qui convient gagne.
+STEP2_DATE_RULES = {
+    "Bundesamt für Privatversicherungen":    [("2003-06-30", "EJPD/DFJP"), ("9999-12-31", "EFD/DFF")],
+    "Office fédéral des assurances privées": [("2003-06-30", "EJPD/DFJP"), ("9999-12-31", "EFD/DFF")],
+}
+_DATE_RULES = {norm_key(k): v for k, v in STEP2_DATE_RULES.items()}
+_unknown_dates = set(_DATE_RULES) - set(FEDERAL_KEYWORD_FORMS)
+if _unknown_dates:
+    raise AssertionError(f"STEP2_DATE_RULES absents de keywords_list.py : {_unknown_dates}")
+
+
+def department_by_date(keyword: str, pubtime) -> str | None:
+    rule = _DATE_RULES.get(norm_key(keyword))
+    if rule is None or pubtime is None or str(pubtime) in ("", "nan", "NaT", "None"):
+        return None
+    day = str(pubtime)[:10]
+    for limit, dept in rule:
+        if day <= limit:
+            return dept
+    return None
 
 
 # ── Légendes et crédits photo ────────────────────────────────────────────────
@@ -265,8 +309,8 @@ def split_sentences(text: str) -> list[str]:
     return sentences
 
 
-def extract_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_canonical) -> tuple[list[dict], int]:
-    """Découpe un paquet d'articles et retourne (lignes, nb de légendes supprimées).
+def extract_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_canonical) -> tuple[list[dict], dict]:
+    """Découpe un paquet d'articles et retourne (lignes, compteurs des phrases supprimées).
 
     One row per (sentence, canonical keyword) pair: a sentence matching
     several distinct entities is duplicated once per entity; a sentence
@@ -277,7 +321,7 @@ def extract_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_can
     """
     meta_cols = [c for c in chunk.columns if c != text_col]
     rows = []
-    n_captions = 0
+    counts = {"captions": 0, "too_long": 0, "html_entity": 0}
     for _, article in chunk.iterrows():
         sentences = split_sentences(article[text_col])
         lang = article["language"] if "language" in article.index else None
@@ -286,19 +330,33 @@ def extract_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_can
             if not sent or sent == "nan":
                 continue
             if is_caption(sent):
-                n_captions += 1
+                counts["captions"] += 1
                 continue
-            for keyword in resolve_keywords(sent, kw_pattern, surface_to_canonical, lang):
+            keywords = resolve_keywords(sent, kw_pattern, surface_to_canonical, lang)
+            if not keywords:
+                continue
+            if len(sent) > STEP2_MAX_SENTENCE_CHARS:
+                counts["too_long"] += 1
+                continue
+            if _HTML_ENTITY.search(sent):
+                counts["html_entity"] += 1
+                continue
+            for keyword in keywords:
                 kw_type, kw_sub_type, kw_abbrev = classify_keyword(keyword)
+                dept = None
+                if kw_sub_type == "ambiguous":
+                    dept = department_by_date(keyword, article.get("pubtime"))
+                    if dept:
+                        kw_sub_type = dept
                 row = {c: article[c] for c in meta_cols}
                 row["sentence"] = sent
                 row["matched_keywords"] = keyword
                 row["type"] = kw_type
                 row["sub_type"] = kw_sub_type
                 row["keyword_abbrev"] = kw_abbrev
-                row.update(keyword_unit_metadata(keyword))
+                row.update(keyword_unit_metadata(keyword, department=dept))
                 rows.append(row)
-    return rows, n_captions
+    return rows, counts
 
 
 def drop_duplicates_in_order(rows: list[dict], journal_col, seen: set) -> tuple[list[dict], int]:
@@ -320,9 +378,10 @@ def drop_duplicates_in_order(rows: list[dict], journal_col, seen: set) -> tuple[
 def process_chunk(chunk: pd.DataFrame, text_col: str, kw_pattern, surface_to_canonical,
                   journal_col, seen: set, stats: dict) -> list[dict]:
     """Version en un seul appel (extraction + doublons), conservée pour les tests."""
-    rows, n_cap = extract_chunk(chunk, text_col, kw_pattern, surface_to_canonical)
+    rows, counts = extract_chunk(chunk, text_col, kw_pattern, surface_to_canonical)
     rows, n_dup = drop_duplicates_in_order(rows, journal_col, seen)
-    stats["captions"] += n_cap
+    for k, v in counts.items():
+        stats[k] = stats.get(k, 0) + v
     stats["duplicates"] += n_dup
     return rows
 
@@ -421,8 +480,9 @@ def main() -> int:
         pool = None
         results = (extract_chunk(c, t, kw_pattern, surface_to_canonical) for c, t in jobs)
 
-    for chunk_start, (rows, n_cap) in zip(starts, results):
-        stats["captions"] += n_cap
+    for chunk_start, (rows, counts) in zip(starts, results):
+        for k, v in counts.items():
+            stats[k] = stats.get(k, 0) + v
         rows, n_dup = drop_duplicates_in_order(rows, journal_col, seen)
         stats["duplicates"] += n_dup
 
@@ -452,8 +512,10 @@ def main() -> int:
         pool.close()
         pool.join()
     print(f"[sentence_cutting] Saved {total_sentences:,} sentences → {output_path}")
-    print(f"[sentence_cutting] Légendes supprimées : {stats['captions']:,} | "
-          f"doublons supprimés (même phrase, même journal) : {stats['duplicates']:,}")
+    print(f"[sentence_cutting] Légendes supprimées : {stats.get('captions', 0):,} | "
+          f"doublons supprimés (même phrase, même journal) : {stats['duplicates']:,} | "
+          f"phrases > {STEP2_MAX_SENTENCE_CHARS} car. : {stats.get('too_long', 0):,} | "
+          f"phrases avec entité HTML : {stats.get('html_entity', 0):,}")
     return 0
 
 
