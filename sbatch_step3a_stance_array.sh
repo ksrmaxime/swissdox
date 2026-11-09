@@ -27,6 +27,9 @@
 #     son checkpoint (sauvegardé toutes les 10 min). Une tâche déjà terminée ne
 #     refait rien : on peut donc aussi relancer --array=0-15 en entier sans risque.
 #   Garder les mêmes PREV_JOB_ID / MAX_ROWS / NUM_TASKS que le run d'origine.
+#
+# Le merge (sbatch_step3b_stance_merge.sh) est soumis AUTOMATIQUEMENT par la
+# 1re tâche de l'array : rien à lancer à la main.
 
 set -eo pipefail
 
@@ -81,6 +84,19 @@ MAX_ROWS_ARGS=()
 if [ -n "$MAX_ROWS" ]; then
     echo "[INFO] MAX_ROWS=$MAX_ROWS : seules les $MAX_ROWS premières lignes du dataset seront traitées."
     MAX_ROWS_ARGS=(--max_rows "$MAX_ROWS")
+fi
+
+# ── MERGE AUTOMATIQUE ──────────────────────────────────────────────────────
+# La 1re tâche de cet array soumet le merge (step 3b). Il attend que TOUTES
+# les tâches de cet array soient terminées sans erreur (afterok) et fusionne
+# le dossier ${RUN_ID}. Si une tâche échoue, le merge reste en attente
+# (DependencyNeverSatisfied) : relancer la tâche avec RESUME_ARRAY_ID, ce qui
+# soumettra à nouveau un merge automatiquement ; supprimer l'ancien avec scancel.
+if [ "${SLURM_ARRAY_TASK_ID}" = "${SLURM_ARRAY_TASK_MIN:-0}" ]; then
+    MERGE_MSG=$(NUM_TASKS="$NUM_TASKS" sbatch --dependency=afterok:${SLURM_ARRAY_JOB_ID} \
+        "$WORKDIR/sbatch_step3b_stance_merge.sh" "$RUN_ID") \
+        && echo "[INFO] Merge soumis automatiquement : ${MERGE_MSG}" \
+        || echo "[WARN] Soumission automatique du merge impossible. À la main : sbatch sbatch_step3b_stance_merge.sh ${RUN_ID}"
 fi
 
 if [ "${SLURM_ARRAY_TASK_ID}" -ge "$NUM_TASKS" ]; then
