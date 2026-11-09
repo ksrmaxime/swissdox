@@ -19,12 +19,16 @@ class LLMConfig:
 
 class TransformersClient:
     def __init__(self, cfg: LLMConfig):
+        if cfg.backend == "dummy":
+            # TESTS UNIQUEMENT : pas de modèle, renvoie une réponse JSON fixe.
+            self._backend = "dummy"
+            return
         if cfg.backend == "vllm":
             self._init_vllm(cfg)
         elif cfg.backend == "transformers":
             self._init_transformers(cfg)
         else:
-            raise ValueError(f"Unknown backend: '{cfg.backend}'. Choose 'vllm' or 'transformers'.")
+            raise ValueError(f"Unknown backend: '{cfg.backend}'. Choose 'vllm', 'transformers' or 'dummy' (tests).")
 
     # ------------------------------------------------------------------
     # vLLM backend (AWQ, GPTQ, BF16 — recommandé sur cluster)
@@ -93,6 +97,8 @@ class TransformersClient:
     ) -> List[str]:
         if not user_prompts:
             return []
+        if self._backend == "dummy":
+            return ['{"justification": "dummy", "stance": "NEUTRAL_STATEMENT"}' for _ in user_prompts]
 
         prompts: List[str] = []
         for up in user_prompts:

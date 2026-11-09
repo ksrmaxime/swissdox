@@ -86,17 +86,22 @@ def build_keyword_index():
 
 def resolve_keywords(sent: str, kw_pattern, surface_to_canonical, lang=None) -> list[str]:
     """Mot(s)-clé(s) canonique(s) trouvés dans `sent`, un par entité distincte."""
-    by_group: dict[tuple, set[str]] = {}
+    by_group: dict[tuple, dict[str, int]] = {}
     for m in kw_pattern.finditer(sent):
         canonical = surface_to_canonical.get(norm_key(m.group(0)), m.group(0))
         if norm_key(canonical) in _IGNORED_KEYS:
             continue   # le terme est reconnu (il "consomme" le texte) mais ne crée pas de ligne
         if not _passes_context(canonical, sent, lang):
             continue   # abréviation ambiguë hors contexte (STEP2_ABBREV_RULES)
-        by_group.setdefault(keyword_group(canonical), set()).add(canonical)
+        group = by_group.setdefault(keyword_group(canonical), {})
+        group.setdefault(canonical, m.start())   # position de la 1re occurrence
 
-    # Dans une même entité, on garde l'alias le plus long (le plus explicite).
-    return sorted(max(aliases, key=len) for aliases in by_group.values())
+    # Dans une même entité, on garde l'alias le plus long (le plus explicite) ;
+    # à longueur égale (ex. « BAZL-OFAC »), celui qui apparaît en premier.
+    # Ce départage rend le résultat identique d'un run à l'autre.
+    return sorted(
+        max(aliases, key=lambda a: (len(a), -aliases[a])) for aliases in by_group.values()
+    )
 
 
 # ── Mots-clés ignorés au sentence cutting ────────────────────────────────────

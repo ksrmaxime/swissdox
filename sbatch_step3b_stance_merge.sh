@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #SBATCH --job-name=step3b_stance_merge
 #SBATCH --partition=cpu
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=16G
-#SBATCH --time=00:30:00
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --time=02:00:00
 #SBATCH --output=logs/step3b_stance_merge_%j.out
 #SBATCH --error=logs/step3b_stance_merge_%j.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
@@ -45,7 +45,10 @@ MERGED_PARQUET="$OUTDIR/criticism_stance_merged.parquet"
 echo "=== MERGE criticism array job ${PREV_JOB_ID} ==="
 echo "DATE=$(date -Is)"
 
-export INBASE MERGED_CSV MERGED_PARQUET
+# Nombre de tâches attendues (= NUM_TASKS de sbatch_step3a_stance_array.sh)
+NUM_TASKS="${NUM_TASKS:-16}"
+
+export INBASE MERGED_CSV MERGED_PARQUET NUM_TASKS
 
 python3 - <<'PYEOF'
 import sys, os, glob
@@ -59,7 +62,19 @@ pattern = f"{inbase}_task*.parquet"
 # "_task*" matche aussi les checkpoints intermédiaires ("_task0_checkpoint.parquet"),
 # qui contiennent les mêmes lignes que le fichier final "_task0.parquet" une fois le
 # job terminé : on les exclut explicitement pour ne pas compter chaque ligne deux fois.
-files = sorted(f for f in glob.glob(pattern) if "checkpoint" not in os.path.basename(f))
+num_tasks      = int(os.environ["NUM_TASKS"])
+files = sorted(f for f in glob.glob(pattern)
+               if "checkpoint" not in os.path.basename(f) and not f.endswith(".partial"))
+
+# Toutes les tâches doivent être terminées (fichier final présent), sinon on s'arrête
+expected = [f"{inbase}_task{i}.parquet" for i in range(num_tasks)]
+missing = [i for i, f in enumerate(expected) if not os.path.exists(f)]
+if missing:
+    print(f"[ERROR] Tâches non terminées (pas de fichier final) : {missing}", file=sys.stderr)
+    print(f"        Les relancer : RESUME_ARRAY_ID=<ID array> sbatch --array={','.join(map(str, missing))} "
+          f"sbatch_step3a_stance_array.sh <PREV_JOB_ID>", file=sys.stderr)
+    sys.exit(1)
+files = expected
 
 if not files:
     # fallback sur CSV si parquet absent
@@ -79,6 +94,10 @@ for f in files:
 
 merged = pd.concat(dfs, ignore_index=True)
 merged = merged.sort_values("sentence_id").reset_index(drop=True)
+dup = int(merged["sentence_id"].duplicated().sum())
+if dup:
+    print(f"[ERROR] {dup} sentence_id en double après fusion : fichiers de deux runs différents mélangés ?", file=sys.stderr)
+    sys.exit(1)
 
 merged.to_parquet(merged_parquet, index=False)
 merged.to_csv(merged_csv, index=False, encoding="utf-8-sig")

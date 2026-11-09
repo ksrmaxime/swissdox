@@ -9,8 +9,10 @@
 #SBATCH --error=logs/step3a_stance_array_%A_%a.err
 #SBATCH --mail-user=maxime.kaiser@unil.ch
 #SBATCH --mail-type=END,FAIL
-#SBATCH --array=0-7   # 8 GPUs en parallèle → ~6 250 lignes chacun pour 50 000 lignes
+#SBATCH --array=0-15  # 16 tâches (1 GPU chacune) → ~45 000 lignes par tâche pour 716 000 lignes
 
+# Chaque tâche de l'array a SA PROPRE limite de 3 jours (--time ci-dessus).
+#
 # Usage: sbatch sbatch_step3a_stance_array.sh <PREV_JOB_ID> [MAX_ROWS]
 # Exemple: sbatch sbatch_step3a_stance_array.sh 60015520
 # Exemple (test sur 1000 lignes): sbatch sbatch_step3a_stance_array.sh 60015520 1000
@@ -18,6 +20,13 @@
 # MAX_ROWS (optionnel) limite le dataset d'entrée aux N premières lignes
 # AVANT le découpage en tâches de l'array : le fichier fusionné en sortie
 # (après sbatch_step3b_stance_merge.sh) contiendra alors exactement N lignes, pas plus.
+#
+# REPRISE d'une ou plusieurs tâches interrompues (temps dépassé, nœud en panne…) :
+#   RESUME_ARRAY_ID=<ID de l'array d'origine> sbatch --array=3,7 sbatch_step3a_stance_array.sh <PREV_JOB_ID> [MAX_ROWS]
+#   → écrit dans le MÊME dossier que l'array d'origine ; chaque tâche repart de
+#     son checkpoint (sauvegardé toutes les 10 min). Une tâche déjà terminée ne
+#     refait rien : on peut donc aussi relancer --array=0-15 en entier sans risque.
+#   Garder les mêmes PREV_JOB_ID / MAX_ROWS / NUM_TASKS que le run d'origine.
 
 set -eo pipefail
 
@@ -36,8 +45,12 @@ WORKDIR=/work/FAC/FDCA/IDHEAP/mhinterl/parp/SWISSDOX_REPO
 cd "$WORKDIR"
 source .venv/bin/activate
 
-# ── OUTPUT: dossier dédié à ce run (partagé par les 8 tâches de l'array) ───
-OUTDIR="$WORKDIR/data/output/step3a_stance_array_job${SLURM_ARRAY_JOB_ID}"
+# ── OUTPUT: dossier dédié à ce run (partagé par toutes les tâches de l'array) ─
+RUN_ID="${RESUME_ARRAY_ID:-${SLURM_ARRAY_JOB_ID}}"
+OUTDIR="$WORKDIR/data/output/step3a_stance_array_job${RUN_ID}"
+if [ -n "${RESUME_ARRAY_ID:-}" ]; then
+    echo "[INFO] REPRISE dans le dossier existant de l'array ${RESUME_ARRAY_ID}"
+fi
 OUTBASE="$OUTDIR/criticism_stance"
 mkdir -p logs "$OUTDIR"
 
@@ -62,12 +75,16 @@ nvidia-smi -L || true
 MODEL_PATH=/reference/LLM/swiss-ai/Apertus-8B-Instruct-2509
 DTYPE=bf16
 BACKEND=transformers
-NUM_TASKS=8   # doit correspondre au nombre de tâches dans --array
+NUM_TASKS=16  # nombre TOTAL de tâches (= --array=0-15) ; ne pas changer pour une reprise
 
 MAX_ROWS_ARGS=()
 if [ -n "$MAX_ROWS" ]; then
     echo "[INFO] MAX_ROWS=$MAX_ROWS : seules les $MAX_ROWS premières lignes du dataset seront traitées."
     MAX_ROWS_ARGS=(--max_rows "$MAX_ROWS")
+fi
+
+if [ "${SLURM_ARRAY_TASK_ID}" -ge "$NUM_TASKS" ]; then
+    echo "[ERROR] SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID} >= NUM_TASKS=${NUM_TASKS}"; exit 1
 fi
 
 python scripts/step3a_stance_array.py \
